@@ -1,4 +1,4 @@
-	XPS2PDF
+	XPS2PDFConverter
     Copyright (C) 2016  TME
 
     This program is free software: you can redistribute it and/or modify
@@ -14,4 +14,6 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 	
-	This software includes unchanged copys of GPL-Versions of Ghostscript and GhostXPS (http://www.ghostscript.com). This software is also under the GNU General Public License (http://www.gnu.org/licenses/gpl.html)
+	This software includes unchanged copys of GPL-Versions of 
+	Ghostscript,GhostXPS (http://www.ghostscript.com) and ITextSharp (http://itextpdf.com/). This software is also under the 
+	GNU General Public License (http://www.gnu.org/licenses/gpl.html)
