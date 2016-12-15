@@ -46,10 +46,8 @@ namespace XPS2PDF
 			log.Info("Start Convert ...");
 			var result = 0;
 			var ToPDFA = false;
-			var throwLimitError = false;
 			string pdfPath = null;
 			string tempPDF = null;
-			long maxSizePerPart = 0;
 			try
 			{
 				if (args.Length < 2 && args.Length > 5)
@@ -67,12 +65,6 @@ namespace XPS2PDF
 				if (args.Length > 2 && !bool.TryParse(args[2], out ToPDFA))
 					ToPDFA = false;
 
-				if (args.Length > 3)
-					long.TryParse(args[3], out maxSizePerPart);
-
-				if (args.Length > 4 && !bool.TryParse(args[4], out throwLimitError))
-					throwLimitError = false;
-
 				if (string.IsNullOrWhiteSpace(Path.GetFileName(pdfPath)))
 					pdfPath = Path.Combine(pdfPath, Path.GetFileName(xpsPath));
 
@@ -82,11 +74,8 @@ namespace XPS2PDF
 				if (!File.Exists(xpsPath))
 					throw new Exception(string.Format("XPS-File-Path not found: {0}", xpsPath));
 
-				if (maxSizePerPart > 0 && !pdfPath.Contains("%Part%"))
-					throw new Exception("If setting 'MaxFileSize' is greater than 0, in filename there have to be '%Part%'.");
-
 				var pathToSave = pdfPath;
-				if (pdfPath.Contains("%Part%") && maxSizePerPart <= 0)
+				if (pdfPath.Contains("%Part%"))
 					pathToSave = pdfPath.Replace("%Part%", "0001");
 
 				GenerateGhostscriptPDF(xpsPath, pathToSave);
