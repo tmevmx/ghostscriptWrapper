@@ -40,17 +40,22 @@ namespace XPS2PDF
 			log.Info("Constructor Converter");
 			AppDomain.CurrentDomain.UnhandledException += CurrentDomain_UnhandledException;
 		}
-
+		/// <summary>
+		/// </summary>
+		/// <param name="args">string xpsPath, string pdfPath, bool ToPdfA</param>
+		/// <returns></returns>
 		public int Convert(string[] args)
 		{
-			log.Info("Start Convert ...");
+			if (log.IsInfoEnabled)
+				log.InfoFormat("Start Convert ... with args: {0}", string.Join(",", args));
+
 			var result = 0;
 			var ToPDFA = false;
 			string pdfPath = null;
 			string tempPDF = null;
 			try
 			{
-				if (args.Length < 2 && args.Length > 5)
+				if (args.Length < 2 && args.Length > 3)
 					Environment.Exit(-1);
 
 				var xpsPath = args[0];
@@ -74,98 +79,12 @@ namespace XPS2PDF
 				if (!File.Exists(xpsPath))
 					throw new Exception(string.Format("XPS-File-Path not found: {0}", xpsPath));
 
-				var pathToSave = pdfPath;
-				if (pdfPath.Contains("%Part%"))
-					pathToSave = pdfPath.Replace("%Part%", "0001");
-
-				GenerateGhostscriptPDF(xpsPath, pathToSave);
-
-				List<string> files;
-
-				pdfPath = pdfPath.Replace("%Part%", "0001");
-
-				if (pathToSave != pdfPath)
-				{
-					if (File.Exists(pdfPath))
-						File.Delete(pdfPath);
-					File.Move(pathToSave, pdfPath);
-				}
-				files = new List<string> { pdfPath };
-
+				GenerateGhostscriptPDF(xpsPath, pdfPath);
 
 				if (!ToPDFA)
 					return result;
-
-				foreach (var file in files)
-				{
-					tempPDF = Path.Combine(Path.GetTempPath(), string.Format("{0}_tmp.pdf", Guid.NewGuid()));
-
-					File.Copy(file, tempPDF);
-
-					GhostScriptWrapper.CallAPI(GetArgs(tempPDF, file));
-
-					var document = new it.Document();
-
-					using (var fs = new FileStream(tempPDF, FileMode.Create))
-					{
-						// step 2: we create a writer that listens to the document
-						//PdfCopy writer = new PdfCopy(document, fs);
-						var pdfaWriter = ip.PdfAWriter.GetInstance(document, fs, ip.PdfAConformanceLevel.PDF_A_1B);
-
-						pdfaWriter.SetTagged();
-						pdfaWriter.CreateXmpMetadata();
-						// step 3: we open the document
-						document.Open();
-
-						document.AddAuthor("VMX");
-						document.AddCreator("renderZv2");
-						document.AddLanguage("de-AT");
-						document.AddProducer();
-						document.AddTitle(Path.GetFileNameWithoutExtension(file));
-
-						// we create a reader for a certain document
-						var reader = new ip.PdfReader(file);
-						reader.ConsolidateNamedDestinations();
-
-						document.NewPage();
-
-						var icc = ip.ICC_Profile.GetInstance(Environment.GetEnvironmentVariable("SystemRoot") + @"\System32\spool\drivers\color\sRGB Color Space Profile.icm");
-						pdfaWriter.SetOutputIntents("sRGB", null, "http://www.color.org", "sRGB IEC61966-2.1", icc.Data);
-
-						// step 4: we add content
-						for (var i = 1; i <= reader.NumberOfPages; i++)
-						{
-							var page = pdfaWriter.GetImportedPage(reader, i);
-							pdfaWriter.DirectContentUnder.AddTemplate(page, 0, 0);
-
-							document.NewPage();
-						}
-
-						// step 5: we close the document and writer
-
-						document.AddCreationDate();
-						pdfaWriter.Flush();
-
-						try
-						{
-							pdfaWriter.Close();
-						}
-						catch (Exception ex)
-						{
-							Console.WriteLine(ex.Message);
-						}
-						reader.Close();
-						try
-						{
-							document.Close();
-						}
-						catch
-						{
-						}
-					}
-
-					manipulatePdf(tempPDF, file);
-				}
+				else
+					SaveAsPDFA(tempPDF, pdfPath);
 			}
 			catch (Exception ex)
 			{
@@ -180,6 +99,77 @@ namespace XPS2PDF
 			}
 
 			return result;
+		}
+
+		private void SaveAsPDFA(string tempPDF, string pdfPath)
+		{
+			tempPDF = Path.Combine(Path.GetTempPath(), string.Format("{0}_tmp.pdf", Guid.NewGuid()));
+
+			File.Copy(pdfPath, tempPDF);
+
+			GhostScriptWrapper.CallAPI(GetArgs(tempPDF, pdfPath));
+
+			var document = new it.Document();
+
+			using (var fs = new FileStream(tempPDF, FileMode.Create))
+			{
+				// step 2: we create a writer that listens to the document
+				//PdfCopy writer = new PdfCopy(document, fs);
+				var pdfaWriter = ip.PdfAWriter.GetInstance(document, fs, ip.PdfAConformanceLevel.PDF_A_1B);
+
+				pdfaWriter.SetTagged();
+				pdfaWriter.CreateXmpMetadata();
+				// step 3: we open the document
+				document.Open();
+
+				document.AddAuthor("VMX");
+				document.AddCreator("renderZv2");
+				document.AddLanguage("de-AT");
+				document.AddProducer();
+				document.AddTitle(Path.GetFileNameWithoutExtension(pdfPath));
+
+				// we create a reader for a certain document
+				var reader = new ip.PdfReader(pdfPath);
+				reader.ConsolidateNamedDestinations();
+
+				document.NewPage();
+
+				var icc = ip.ICC_Profile.GetInstance(Environment.GetEnvironmentVariable("SystemRoot") + @"\System32\spool\drivers\color\sRGB Color Space Profile.icm");
+				pdfaWriter.SetOutputIntents("sRGB", null, "http://www.color.org", "sRGB IEC61966-2.1", icc.Data);
+
+				// step 4: we add content
+				for (var i = 1; i <= reader.NumberOfPages; i++)
+				{
+					var page = pdfaWriter.GetImportedPage(reader, i);
+					pdfaWriter.DirectContentUnder.AddTemplate(page, 0, 0);
+
+					document.NewPage();
+				}
+
+				// step 5: we close the document and writer
+
+				document.AddCreationDate();
+				pdfaWriter.Flush();
+
+				try
+				{
+					pdfaWriter.Close();
+				}
+				catch (Exception ex)
+				{
+					Console.WriteLine(ex.Message);
+				}
+				reader.Close();
+				try
+				{
+					document.Close();
+				}
+				catch
+				{
+				}
+			}
+
+			manipulatePdf(tempPDF, pdfPath);
 		}
 
 		public void manipulatePdf(string src, string dest)
@@ -291,19 +281,6 @@ namespace XPS2PDF
 			};
 		}
 
-		static string[] GetArgsXPS(string inputPath, string outputPath)
-		{
-			return new[]
-			{
-				"", //Leer weil das 0. Argument ignoriert wird
-				"-dBATCH",
-				"-dNOPAUSE",
-				"-sDEVICE=pdfwrite",
-				string.Format("-sOutputFile={0}", outputPath),
-				inputPath
-			};
-		}
-
 		public static void CurrentDomain_UnhandledException(object sender, UnhandledExceptionEventArgs e)
 		{
 			log.ErrorFormat("CurrentDomain_UnhandledException");
@@ -335,7 +312,7 @@ namespace XPS2PDF
 
 				process.StartInfo.FileName = procPath;
 
-				process.StartInfo.Arguments = string.Format("-sDEVICE=pdfwrite -sOutputFile=\"{0}\" -dNOPAUSE \"{1}\"", pathToSave, xpsPath);
+				process.StartInfo.Arguments = string.Format("-sDEVICE=pdfwrite  -dCompatibilityLevel=1.4 -dBATCH -sOutputFile=\"{0}\" -dNOPAUSE \"{1}\"", pathToSave, xpsPath);
 				log.DebugFormat("XPS2PDF.exe Call - Arguments: {0}", process.StartInfo.Arguments);
 
 				process.StartInfo.CreateNoWindow = true;
