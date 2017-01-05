@@ -3,6 +3,7 @@ using System.Runtime.InteropServices;
 
 namespace XPS2PDF
 {
+	//TODO [AJO->RBU] delete?
 	class GhostScriptXPSWrapper
 	{
 		#region Hooks into Ghostscript DLL

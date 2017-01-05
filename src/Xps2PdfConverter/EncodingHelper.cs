@@ -5,6 +5,8 @@ using System.Runtime.InteropServices;
 
 namespace XPS2PDF
 {
+	//TODO [AJO->RBU] delete?
+
 	class EncodingHelper
 	{
 		[DllImport("gdi32.dll")]

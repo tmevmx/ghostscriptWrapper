@@ -12,6 +12,7 @@ using ip = iTextSharp.text.pdf;
 using it = iTextSharp.text;
 using System.Globalization;
 using System.Threading;
+using XPS2PDF.Properties;
 
 [assembly: XmlConfigurator(Watch = true)]
 
@@ -27,7 +28,6 @@ namespace XPS2PDF
 
 			var conv = new Converter();
 			return conv.Convert(args);
-
 		}
 	}
 
@@ -107,7 +107,7 @@ namespace XPS2PDF
 
 			File.Copy(pdfPath, tempPDF);
 
-			GhostScriptWrapper.CallAPI(GetArgs(tempPDF, pdfPath));
+			GhostScriptWrapper.CallAPI(GetArgs(tempPDF, pdfPath)); //TODO [RBU] Settings.Default.GhostScriptDLLPath
 
 			var document = new it.Document();
 
@@ -308,11 +308,12 @@ namespace XPS2PDF
 			{
 				process = new Process();
 
-				var procPath = Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), "gxpswin64.exe");
+				var procPath = Settings.Default.GhostXPSExePath;
+				//var procPath = Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), "gxpswin64.exe");
 
 				process.StartInfo.FileName = procPath;
 
-				process.StartInfo.Arguments = string.Format("-sDEVICE=pdfwrite  -dCompatibilityLevel=1.4 -dBATCH -sOutputFile=\"{0}\" -dNOPAUSE \"{1}\"", pathToSave, xpsPath);
+				process.StartInfo.Arguments = string.Format("-sDEVICE=pdfwrite -sOutputFile=\"{0}\" -dNOPAUSE \"{1}\"", pathToSave, xpsPath);
 				log.DebugFormat("XPS2PDF.exe Call - Arguments: {0}", process.StartInfo.Arguments);
 
 				process.StartInfo.CreateNoWindow = true;
