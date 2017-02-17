@@ -2,9 +2,6 @@
 <SettingsFile xmlns="http://schemas.microsoft.com/VisualStudio/2004/01/settings" CurrentProfile="(Default)" GeneratedClassNamespace="XPS2PDF.Properties" GeneratedClassName="Settings">
   <Profiles />
   <Settings>
-    <Setting Name="GhostXPSExePath" Type="System.String" Scope="Application">
-      <Value Profile="(Default)">C:\Code\GhostScriptWrapper\src\Xps2PdfConverter\libs\ghostxps-9.20-win64\gxpswin64.exe</Value>
-    </Setting>
     <Setting Name="GhostScriptDLLPath" Type="System.String" Scope="Application">
       <Value Profile="(Default)">C:\Code\GhostScriptWrapper\src\lib\gs9.20\gsdll64.dll</Value>
     </Setting>

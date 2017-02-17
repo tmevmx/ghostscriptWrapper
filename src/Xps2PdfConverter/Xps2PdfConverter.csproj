@@ -52,7 +52,6 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="EncodingHelper.cs" />
-    <Compile Include="GhostScriptXPSWrapper.cs" />
     <Compile Include="GhostScriptWrapper.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
@@ -79,6 +78,16 @@
   </ItemGroup>
   <ItemGroup>
     <Content Include="gsdll64.dll" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\lib\PDFSharp\PdfSharp.Xps\PdfSharp.Xps.csproj">
+      <Project>{0bc3964b-a3bc-49d5-9b7c-463299b5a166}</Project>
+      <Name>PdfSharp.Xps</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\lib\PDFSharp\PdfSharp\PdfSharp.csproj">
+      <Project>{5384ce57-1f94-4d22-860d-2e9c1ac12ddf}</Project>
+      <Name>PdfSharp</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

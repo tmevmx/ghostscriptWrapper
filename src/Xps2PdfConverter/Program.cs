@@ -13,6 +13,10 @@ using it = iTextSharp.text;
 using System.Globalization;
 using System.Threading;
 using XPS2PDF.Properties;
+using PdfSharp.Xps;
+using PdfSharp.Xps.XpsModel;
+using PdfSharp.Pdf.IO;
+using PdfSharp.Pdf;
 
 [assembly: XmlConfigurator(Watch = true)]
 
@@ -51,8 +55,10 @@ namespace XPS2PDF
 
 			var result = 0;
 			var ToPDFA = false;
+			var throwLimitError = false;
 			string pdfPath = null;
 			string tempPDF = null;
+			long maxSizePerPart = 0;
 			try
 			{
 				if (args.Length < 2 && args.Length > 3)
@@ -70,6 +76,12 @@ namespace XPS2PDF
 				if (args.Length > 2 && !bool.TryParse(args[2], out ToPDFA))
 					ToPDFA = false;
 
+				if (args.Length > 3)
+					long.TryParse(args[3], out maxSizePerPart);
+
+				if (args.Length > 4 && !bool.TryParse(args[4], out throwLimitError))
+					throwLimitError = false;
+
 				if (string.IsNullOrWhiteSpace(Path.GetFileName(pdfPath)))
 					pdfPath = Path.Combine(pdfPath, Path.GetFileName(xpsPath));
 
@@ -78,8 +90,37 @@ namespace XPS2PDF
 
 				if (!File.Exists(xpsPath))
 					throw new Exception(string.Format("XPS-File-Path not found: {0}", xpsPath));
+				if (maxSizePerPart > 0 && !pdfPath.Contains("%Part%"))
+					throw new Exception("If setting 'MaxFileSize' is greater than 0, in filename there have to be '%Part%'.");
 
-				GenerateGhostscriptPDF(xpsPath, pdfPath);
+				var pathToSave = pdfPath;
+				if (pdfPath.Contains("%Part%") && maxSizePerPart <= 0)
+					pathToSave = pdfPath.Replace("%Part%", "0001");
+
+				using (var xps = XpsDocument.Open(xpsPath))
+				{
+					log.InfoFormat("Convert '{0}' to '{1}'", xps, pathToSave);
+					XpsConverter.Convert(xps, pathToSave, 0);
+				}
+
+				List<string> files;
+				if (maxSizePerPart > 0 && new FileInfo(pathToSave).Length > maxSizePerPart)
+				{
+					files = SplitBySize(pathToSave, pdfPath, maxSizePerPart, throwLimitError, ref result);
+					File.Delete(pathToSave);
+				}
+				else
+				{
+					pdfPath = pdfPath.Replace("%Part%", "0001");
+
+					if (pathToSave != pdfPath)
+					{
+						if (File.Exists(pdfPath))
+							File.Delete(pdfPath);
+						File.Move(pathToSave, pdfPath);
+					}
+					files = new List<string> { pdfPath };
+				}
 
 				if (!ToPDFA)
 					return result;
@@ -288,7 +329,7 @@ namespace XPS2PDF
 			{
 				try
 				{
-					//WriteExceptionFile(e.ExceptionObject as Exception);
+					WriteExceptionFile(e.ExceptionObject as Exception);
 				}
 				catch (Exception) { }
 				log.Error(e.ExceptionObject as Exception);
@@ -301,53 +342,160 @@ namespace XPS2PDF
 			}
 		}
 
-		private void GenerateGhostscriptPDF(string xpsPath, string pathToSave)
+		public static List<string> SplitBySize(string fileToSplit, string filename, long limit, bool throwLimitError, ref int result)
 		{
-			Process process = null;
-			try
+			var input = PdfReader.Open(fileToSplit, PdfDocumentOpenMode.Import);
+			var output = CreateDocument(input);
+
+			var name = Path.GetFileNameWithoutExtension(fileToSplit);
+			var temp = filename.Replace("%Part%", "splitTmp");
+			var j = 1;
+			var files = new List<string>();
+			string path = null;
+			for (var i = 0; i < input.PageCount; i++)
 			{
-				process = new Process();
-
-				var procPath = Settings.Default.GhostXPSExePath;
-				//var procPath = Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), "gxpswin64.exe");
-
-				process.StartInfo.FileName = procPath;
-
-				process.StartInfo.Arguments = string.Format("-sDEVICE=pdfwrite -sOutputFile=\"{0}\" -dNOPAUSE \"{1}\"", pathToSave, xpsPath);
-				log.DebugFormat("XPS2PDF.exe Call - Arguments: {0}", process.StartInfo.Arguments);
-
-				process.StartInfo.CreateNoWindow = true;
-				process.StartInfo.ErrorDialog = false;
-
-				var fi = new FileInfo(procPath);
-
-				process.StartInfo.WorkingDirectory = fi.Directory.FullName;
-
-				process.Start();
-
-				var dtStart = DateTime.Now;
-
-				if (!process.WaitForExit(1800000)) //AJO: Halbe stunde maximal für Export, da sind ca 600 Seiten möglich
+				var page = input.Pages[i];
+				output.AddPage(page);
+				output.Save(temp);
+				var info = new FileInfo(temp);
+				if (info.Length <= limit || (!throwLimitError && output.PageCount == 1))
 				{
-					process.Kill();
-					throw new Exception("Konvertierung hat zu lange gebraucht (30 Minuten), daher abgebrochen.");
+					if (!throwLimitError && output.PageCount == 1)
+					{
+						//Warning
+						result = 333;
+					}
+
+					path = filename.Replace("%Part%", string.Format("{0:0000}", j));
+					if (File.Exists(path))
+						File.Delete(path);
+					File.Move(temp, path);
 				}
+				else
+				{
+					if (output.PageCount > 1)
+					{
+						if (!string.IsNullOrWhiteSpace(path))
+							files.Add(path);
 
-				var exitCode = process.ExitCode;
+						if (File.Exists(temp))
+							File.Delete(temp);
 
-				if (exitCode != 0)
-					throw new Exception(string.Format("Fehler beim Konvertieren mit Ghostscript aufgetreten. ExitCode '{0}'", exitCode));
+						output = CreateDocument(input);
+
+						++j;
+						--i;
+					}
+					else
+					{
+						result = 333;
+						throw new Exception(
+							 string.Format("Page #{0} is greater than the document size limit of {1} MB (size = {2})",
+							 i + 1,
+							 limit / 1E6,
+							 info.Length));
+					}
+				}
 			}
-			finally
+
+			if (!string.IsNullOrWhiteSpace(path) && !files.Contains(path))
+				files.Add(path);
+
+			return files;
+		}
+
+		private static PdfDocument CreateDocument(PdfDocument input)
+		{
+			//???
+			var outputDocument = new PdfDocument();
+			return outputDocument;
+		}
+
+		static void WriteExceptionFile(object ExceptionObject)
+		{
+			var ex = ExceptionObject as Exception;
+			if (ex != null)
 			{
-				if (process != null)
-				{
-					process.Close();
-					process.Dispose();
-				}
+				var tmp = Path.Combine(Path.GetTempPath(), "rz-Exceptions_XPS2PDFConverter");
+				if (!Directory.Exists(tmp)) Directory.CreateDirectory(tmp);
+				var outfile = Path.Combine(tmp, Guid.NewGuid() + ".xml");
+
+				var xmlinfo = GetDetailXml(ex).OuterXml;
+				File.WriteAllText(outfile, xmlinfo);
+
+				var dat = System.Convert.ToBase64String(Encoding.UTF8.GetBytes(xmlinfo));
+				Trace.WriteLine("UNHANDLED EXCEPTION: " + dat);
+			}
+			else if (ExceptionObject != null)
+			{
+				Trace.WriteLine("UNHANDLED EXCEPTION: " + ExceptionObject.GetType().FullName);
 			}
 		}
 
+		public static XmlDocument GetDetailXml(Exception ex)
+		{
+			var doc = new XmlDocument();
+			var CurEx = ex;
+			var root = doc.CreateElement("ExceptionDetails");
+			doc.AppendChild(root);
+			AppendException(root, ex);
+			return doc;
+		}
 
+		public static XmlElement AppendException(XmlElement n, Exception ex)
+		{
+			var exNode = n.OwnerDocument.CreateElement("Exception");
+			n.AppendChild(exNode);
+			var type = n.OwnerDocument.CreateAttribute("Type");
+			type.Value = fs(ex.GetType().FullName);
+			exNode.Attributes.Append(type);
+			//exNode.AppendAttribute("Type", fs(ex.GetType().FullName));
+			var source = n.OwnerDocument.CreateAttribute("Source");
+			source.Value = fs(ex.Source);
+			exNode.Attributes.Append(source);
+			//exNode.AppendAttribute("Source", fs(ex.Source));
+
+			if (ex.TargetSite != null)
+			{
+				var target = n.OwnerDocument.CreateAttribute("TargetSiteName");
+				target.Value = fs(ex.TargetSite.Name);
+				exNode.Attributes.Append(target);
+				//exNode.AppendAttribute("TargetSiteName", fs(ex.TargetSite.Name));
+			}
+
+			var msg = n.OwnerDocument.CreateAttribute("Message");
+			msg.Value = fs(ex.Message);
+			exNode.Attributes.Append(msg);
+			//exNode.AppendElement("Message").InnerText = fs(ex.Message);
+
+			var stack = n.OwnerDocument.CreateAttribute("StackTrace");
+			stack.Value = fs(ex.StackTrace);
+			exNode.Attributes.Append(stack);
+			//exNode.AppendElement("StackTrace").InnerText = fs(ex.StackTrace);
+
+			if (ex.InnerException != null)
+			{
+				var innerEx = n.OwnerDocument.CreateElement("InnerException");
+				exNode.AppendChild(innerEx);
+				AppendException(innerEx, ex.InnerException);
+				//exNode.AppendElement("InnerException").AppendException(ex.InnerException);
+			}
+			var arg = ex as AggregateException;
+			if (arg != null && arg.InnerExceptions != null)
+			{
+				var inners = n.OwnerDocument.CreateElement("InnerException");
+				exNode.AppendChild(inners);
+				foreach (var e in arg.InnerExceptions)
+					if (e != null) AppendException(inners, e);
+			}
+
+			return exNode;
+		}
+
+		private static string fs(string element)
+		{
+			if (string.IsNullOrWhiteSpace(element)) return "";
+			return element;
+		}
 	}
 }
