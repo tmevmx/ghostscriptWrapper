@@ -84,9 +84,9 @@
       <Project>{0bc3964b-a3bc-49d5-9b7c-463299b5a166}</Project>
       <Name>PdfSharp.Xps</Name>
     </ProjectReference>
-    <ProjectReference Include="..\lib\PDFSharp\PdfSharp\PdfSharp.csproj">
-      <Project>{5384ce57-1f94-4d22-860d-2e9c1ac12ddf}</Project>
-      <Name>PdfSharp</Name>
+    <ProjectReference Include="..\lib\PDFSharp\PdfSharp\PdfSharp-WPF.csproj">
+      <Project>{829d93b8-7950-4bc8-aea4-51854f84c172}</Project>
+      <Name>PdfSharp-WPF</Name>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
