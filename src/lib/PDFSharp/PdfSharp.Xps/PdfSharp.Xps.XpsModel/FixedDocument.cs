@@ -88,7 +88,7 @@ namespace PdfSharp.Xps.XpsModel
       {
         string source = IOPath.Combine(UriString, PageContentUriStrings[index]);
         source = source.Replace('\\', '/');
-        fpage = Parsing.XpsParser.Parse(XpsDocument.GetPartAsXmlReader(Package, source)) as FixedPage;
+        fpage = Parsing.XpsParser.Parse(XpsDocument.GetPartAsXmlReader(Package, source), Package) as FixedPage;
         if (fpage != null)
         {
           fpage.Parent = this;

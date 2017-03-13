@@ -6,6 +6,7 @@ using System.Text;
 using System.Xml;
 using System.IO;
 using PdfSharp.Xps.XpsModel;
+using System.IO.Packaging;
 
 namespace PdfSharp.Xps.Parsing
 {
@@ -14,7 +15,7 @@ namespace PdfSharp.Xps.Parsing
     /// <summary>
     /// Parses a FixedPage element.
     /// </summary>
-    FixedPage ParseFixedPage()
+    FixedPage ParseFixedPage(ZipPackage package = null)
     {
       Debug.Assert(this.reader.Name == "FixedPage");
       FixedPage fpage = new FixedPage();
@@ -130,7 +131,7 @@ namespace PdfSharp.Xps.Parsing
                 rd.Parent = fpage;
                 rd.ResourceParent = ResourceDictionaryStack.Current;
                 ResourceDictionaryStack.Push(rd);
-                ParseResourceDictionary(rd);
+                ParseResourceDictionary(rd, package);
                 MoveToNextElement();
                 break;
 

@@ -125,7 +125,7 @@ namespace PdfSharp.Xps.Parsing
       if (!isEmptyElement)
       {
         MoveToNextElement();
-        while (this.reader.IsStartElement())
+        while (this.reader.IsStartElement() && this.reader.Name != "Canvas")
         {
           switch (this.reader.Name)
           {
@@ -168,8 +168,8 @@ namespace PdfSharp.Xps.Parsing
               break;
 
             default:
-              Debugger.Break();
-              break;
+							return path;
+							break; // throw new NotSupportedException($"Operatation \"{this.reader.Name}\" not supported");
           }
         }
       }
