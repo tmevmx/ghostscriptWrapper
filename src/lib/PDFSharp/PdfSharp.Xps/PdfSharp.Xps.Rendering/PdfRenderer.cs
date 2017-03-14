@@ -20,9 +20,10 @@ namespace PdfSharp.Xps.Rendering
     /// </summary>
     internal PdfRenderer()
     {
-      //this.document = new PdfDocument();
-      //this.page = this.document.AddPage();
-      //this.context = context;
+			//this.document = new PdfDocument();
+			//this.page = this.document.AddPage();
+			//this.context = context;
+			this.resourceHashtable = new Dictionary<string, PdfObject>();
     }
 
     internal PdfPage CreatePage(PdfDocument doc, FixedPage fixedPage)
@@ -60,7 +61,7 @@ namespace PdfSharp.Xps.Rendering
       //}
       page.RenderContent = content;
 
-      this.writer = new PdfContentWriter(this.context, this.page);
+      this.writer = new PdfContentWriter(this.context, this.page, resourceHashtable);
 
       //Initialize();
 
@@ -77,5 +78,6 @@ namespace PdfSharp.Xps.Rendering
     PdfPage page;
     PdfContentWriter writer;
     DocumentRenderingContext context;
+		Dictionary<string, PdfObject> resourceHashtable;
   }
 }

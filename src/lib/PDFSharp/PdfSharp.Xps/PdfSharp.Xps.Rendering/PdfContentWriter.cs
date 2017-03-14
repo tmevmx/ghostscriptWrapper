@@ -24,7 +24,7 @@ namespace PdfSharp.Xps.Rendering
     /// Initializes a new instance of the <see cref="PdfContentWriter"/> class
     /// for creating a content stream of the specified page.
     /// </summary>
-    public PdfContentWriter(DocumentRenderingContext context, PdfPage page) // , XGraphics gfx, XGraphicsPdfPageOptions options)
+    public PdfContentWriter(DocumentRenderingContext context, PdfPage page, Dictionary<string,PdfObject> resourceHashtable = null) // , XGraphics gfx, XGraphicsPdfPageOptions options)
     {
       this.context = context;
       this.page = page;
@@ -33,13 +33,14 @@ namespace PdfSharp.Xps.Rendering
       //this.options = options;
       this.content = new StringBuilder();
       this.graphicsState = new PdfGraphicsState(this);
-    }
+			this.resourceHashtable = resourceHashtable;
+	 }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="PdfContentWriter"/> class
     /// for creating a content stream of the specified form.
     /// </summary>
-    public PdfContentWriter(DocumentRenderingContext context, XForm form, RenderMode renderMode) // , XGraphics gfx, XGraphicsPdfPageOptions options)
+    public PdfContentWriter(DocumentRenderingContext context, XForm form, RenderMode renderMode, Dictionary<string, PdfObject> resourceHashtable = null) // , XGraphics gfx, XGraphicsPdfPageOptions options)
     {
       this.context = context;
       this.form = form;
@@ -49,12 +50,13 @@ namespace PdfSharp.Xps.Rendering
       //this.options = options;
       this.content = new StringBuilder();
       this.graphicsState = new PdfGraphicsState(this);
-    }
+			this.resourceHashtable = resourceHashtable;
+		}
 
     /// <summary>
     /// </summary>
-    public PdfContentWriter(DocumentRenderingContext context, PdfDictionary contentDictionary)
-    {
+    public PdfContentWriter(DocumentRenderingContext context, PdfDictionary contentDictionary, Dictionary<string, PdfObject> resourceHashtable = null)
+		{
       if (!(contentDictionary is IContentStream))
         throw new ArgumentException("contentDictionary must implement IContentStream.");
       this.context = context;
@@ -65,7 +67,8 @@ namespace PdfSharp.Xps.Rendering
       //this.options = options;
       this.content = new StringBuilder();
       this.graphicsState = new PdfGraphicsState(this);
-    }
+			this.resourceHashtable = resourceHashtable;
+		}
 
     internal PdfPage page;
     internal XForm form;
@@ -531,7 +534,7 @@ namespace PdfSharp.Xps.Rendering
           RealizeExtGState(xgState);
 
           // 1st draw fill
-          PdfTilingPattern pattern = TilingPatternBuilder.BuildFromImageBrush(Context, iBrush, Transform);
+          PdfTilingPattern pattern = TilingPatternBuilder.BuildFromImageBrush(Context, iBrush, Transform, this.resourceHashtable);
           string name = Resources.AddPattern(pattern);
 
           WriteLiteral("/Pattern cs " + name + " scn\n");
@@ -1556,5 +1559,7 @@ namespace PdfSharp.Xps.Rendering
     /// The graphical state stack.
     /// </summary>
     Stack<PdfGraphicsState> graphicsStateStack = new Stack<PdfGraphicsState>();
+
+		Dictionary<string, PdfObject> resourceHashtable;
   }
 }
