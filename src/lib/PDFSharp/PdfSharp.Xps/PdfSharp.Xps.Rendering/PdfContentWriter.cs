@@ -559,7 +559,7 @@ namespace PdfSharp.Xps.Rendering
           RealizeExtGState(xgState);
 
           // 1st draw fill
-          PdfTilingPattern pattern = TilingPatternBuilder.BuildFromVisualBrush(Context, vBrush, Transform);
+          PdfTilingPattern pattern = TilingPatternBuilder.BuildFromVisualBrush(Context, vBrush, Transform, this.resourceHashtable);
           string name = Resources.AddPattern(pattern);
 
           WriteLiteral("/Pattern cs " + name + " scn\n");
