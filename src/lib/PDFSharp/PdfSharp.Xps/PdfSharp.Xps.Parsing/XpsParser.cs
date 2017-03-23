@@ -170,9 +170,9 @@ namespace PdfSharp.Xps.Parsing
       key = key.Substring(0, key.IndexOf('}')).Trim();
 
       T res = FindStaticResource<T>(key, ResourceDictionaryStack.Current);
-      if (res == null)
-        throw new ArgumentException("StaticResource not found: " + value);
-      return res;
+			if (res == null)
+				throw new ArgumentException("StaticResource not found: " + value);
+			return res;
     }
 
     /// <summary>

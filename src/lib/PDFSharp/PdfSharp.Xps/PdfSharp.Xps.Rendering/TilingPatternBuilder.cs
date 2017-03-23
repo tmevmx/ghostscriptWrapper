@@ -202,7 +202,7 @@ namespace PdfSharp.Xps.Rendering
             pdfForm.Elements.SetRectangle(PdfFormXObject.Keys.BBox, new PdfRectangle(0, height, width, 0));
             pdfForm.Elements.SetMatrix(PdfFormXObject.Keys.Matrix, new XMatrix());
 
-            PdfContentWriter writer = new PdfContentWriter(Context, pdfForm);
+            PdfContentWriter writer = new PdfContentWriter(Context, pdfForm, resourceHashtable);
 
             Debug.Assert(ximage != null);
 
@@ -395,7 +395,7 @@ namespace PdfSharp.Xps.Rendering
 
             pdfForm.Elements.SetMatrix(PdfFormXObject.Keys.Matrix, new XMatrix());
 
-            PdfContentWriter writer = new PdfContentWriter(Context, pdfForm);
+            PdfContentWriter writer = new PdfContentWriter(Context, pdfForm, resourceHashtable);
 
             pdfForm.Elements.SetMatrix(PdfFormXObject.Keys.Matrix, new XMatrix());
 
