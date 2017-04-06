@@ -177,18 +177,27 @@ namespace PdfSharp.Xps.Rendering
             //  Q
             //Q
             //endstream
-            PdfFormXObject pdfForm = Context.PdfDocument.Internals.CreateIndirectObject<PdfFormXObject>();
+            PdfFormXObject pdfForm = null;
+			if (resourceHashtable != null && resourceHashtable.ContainsKey(brush.ImageSource))
+			{
+				pdfForm = resourceHashtable[brush.ImageSource] as PdfFormXObject;
+				return pdfForm;
+			}
+
+			pdfForm = Context.PdfDocument.Internals.CreateIndirectObject<PdfFormXObject>();
+
 			XImage ximage = null;
 
-			if (resourceHashtable == null || !resourceHashtable.ContainsKey(brush.ImageSource))
-			{
+			//if (resourceHashtable == null || !resourceHashtable.ContainsKey(brush.ImageSource))
+			//{
 				XPImage xpImage = ImageBuilder.FromImageBrush(Context, brush);
 				ximage = xpImage.XImage;
-			}
-			else
-			{
-				ximage = (resourceHashtable[brush.ImageSource] as PdfImage).Image;
-			}
+			//}
+			//else
+			//{
+			//	ximage = (resourceHashtable[brush.ImageSource] as PdfImage).Image;
+			//}
+
             ximage.Interpolate = false;
             double width = ximage.PixelWidth;
             double height = ximage.PixelHeight;
@@ -212,12 +221,13 @@ namespace PdfSharp.Xps.Rendering
             //formWriter.Size = brush.Viewport.Size;
             writer.BeginContentRaw();
 
-			PdfImage img = (resourceHashtable != null && resourceHashtable.ContainsKey(brush.ImageSource)) ? resourceHashtable[brush.ImageSource] as PdfImage : new PdfImage(Context.PdfDocument, ximage);
+			//PdfImage img = (resourceHashtable != null && resourceHashtable.ContainsKey(brush.ImageSource)) ? resourceHashtable[brush.ImageSource] as PdfImage : new PdfImage(Context.PdfDocument, ximage);
 
-			if (resourceHashtable != null && !resourceHashtable.ContainsKey(brush.ImageSource))
-				resourceHashtable.Add(brush.ImageSource, img);
+			//if (resourceHashtable != null && !resourceHashtable.ContainsKey(brush.ImageSource))
+			//	resourceHashtable.Add(brush.ImageSource, img);
+			PdfImage img = new PdfImage(Context.PdfDocument, ximage);
 
-            string imageID = writer.Resources.AddImage(img);
+				string imageID = writer.Resources.AddImage(img);
             XMatrix matrix = new XMatrix();
             //double scaleX = brush.Viewport.Width / brush.Viewbox.Width * 4 / 3 * ximage.PointWidth;
             //double scaleY = brush.Viewport.Height / brush.Viewbox.Height * 4 / 3 * ximage.PointHeight;
@@ -244,6 +254,10 @@ namespace PdfSharp.Xps.Rendering
 
             writer.EndContent();
 
+			if (resourceHashtable != null)
+			{
+				resourceHashtable.Add(brush.ImageSource, pdfForm);
+			}
             return pdfForm;
         }
 
