@@ -416,7 +416,9 @@ namespace XPS2PDF
 			var ex = ExceptionObject as Exception;
 			if (ex != null)
 			{
-				var tmp = Path.Combine(Path.GetTempPath(), "rz-Exceptions_XPS2PDFConverter");
+				var exPath = Environment.ExpandEnvironmentVariables(Properties.Settings.Default.ExceptionPath);
+
+				var tmp = Path.Combine((!string.IsNullOrWhiteSpace(exPath)) ? exPath : Path.GetTempPath(), "rz-Exceptions_XPS2PDFConverter");
 				if (!Directory.Exists(tmp)) Directory.CreateDirectory(tmp);
 				var outfile = Path.Combine(tmp, Guid.NewGuid() + ".xml");
 
