@@ -82,6 +82,10 @@ namespace XPS2PDF
 				if (args.Length > 4 && !bool.TryParse(args[4], out throwLimitError))
 					throwLimitError = false;
 
+				bool append = false;
+				if (args.Length > 5)
+					append = args[5].ToLower() == "concat";
+
 				if (string.IsNullOrWhiteSpace(Path.GetFileName(pdfPath)))
 					pdfPath = Path.Combine(pdfPath, Path.GetFileName(xpsPath));
 
@@ -100,7 +104,7 @@ namespace XPS2PDF
 				using (var xps = XpsDocument.Open(xpsPath))
 				{
 					log.InfoFormat("Convert '{0}' to '{1}'", xps, pathToSave);
-					XpsConverter.Convert(xps, pathToSave, 0);
+					XpsConverter.Convert(xps, pathToSave, 0, append);
 				}
 
 				List<string> files;

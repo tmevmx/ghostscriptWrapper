@@ -21,6 +21,7 @@ using IOPath = System.IO.Path;
 using Point = PdfSharp.Xps.XpsModel.Point;
 using Rect = PdfSharp.Xps.XpsModel.Rect;
 using Size = PdfSharp.Xps.XpsModel.Size;
+using PdfSharp.Pdf.IO;
 
 namespace PdfSharp.Xps
 {
@@ -187,7 +188,7 @@ namespace PdfSharp.Xps
 		/// <summary>
 		/// Implements the PDF file to XPS file conversion.
 		/// </summary>
-		public static void Convert(XpsDocument xpsDocument, string pdfFilename, int docIndex)
+		public static void Convert(XpsDocument xpsDocument, string pdfFilename, int docIndex, bool appendToExistingDoc)
 		{
 
 			if (xpsDocument == null)
@@ -197,7 +198,7 @@ namespace PdfSharp.Xps
 				throw new ArgumentNullException("pdfFilename");
 
 			//FixedDocument fixedDocument = xpsDocument.GetDocument();
-			PdfDocument pdfDocument = new PdfDocument();
+			PdfDocument pdfDocument = (appendToExistingDoc) ? PdfReader.Open(pdfFilename, PdfDocumentOpenMode.Modify) : new PdfDocument();
 			PdfRenderer renderer = new PdfRenderer();
 
 			int pageIndex = 0;

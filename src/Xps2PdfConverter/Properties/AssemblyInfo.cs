@@ -10,9 +10,9 @@
 
 [assembly: System.Reflection.AssemblyProduct("Xps2PdfConverter")]
 [assembly: System.Reflection.AssemblyCopyright("Copyright © 2017. All rights reserved.")]
-[assembly: System.Reflection.AssemblyVersion("1.2017.0426")]
-[assembly: System.Reflection.AssemblyFileVersion("1.2017.0426")]
-[assembly: System.Reflection.AssemblyInformationalVersion("1.2017.0426.b676896")]
+[assembly: System.Reflection.AssemblyVersion("1.2017.0711")]
+[assembly: System.Reflection.AssemblyFileVersion("1.2017.0711")]
+[assembly: System.Reflection.AssemblyInformationalVersion("1.2017.0711.4c861e5")]
 
 
 
@@ -22,11 +22,11 @@ internal sealed partial class ThisAssembly {
     
     internal const string AssemblyCopyright = "Copyright © 2017. All rights reserved.";
     
-    internal const string AssemblyVersion = "1.2017.0426";
+    internal const string AssemblyVersion = "1.2017.0711";
     
-    internal const string AssemblyFileVersion = "1.2017.0426";
+    internal const string AssemblyFileVersion = "1.2017.0711";
     
-    internal const string AssemblyInformationalVersion = "1.2017.0426.b676896";
+    internal const string AssemblyInformationalVersion = "1.2017.0711.4c861e5";
     
     private ThisAssembly() {
     }
