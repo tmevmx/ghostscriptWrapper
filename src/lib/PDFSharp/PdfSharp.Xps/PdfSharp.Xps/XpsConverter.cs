@@ -198,7 +198,7 @@ namespace PdfSharp.Xps
 				throw new ArgumentNullException("pdfFilename");
 
 			//FixedDocument fixedDocument = xpsDocument.GetDocument();
-			PdfDocument pdfDocument = (appendToExistingDoc) ? PdfReader.Open(pdfFilename, PdfDocumentOpenMode.Modify) : new PdfDocument();
+			PdfDocument pdfDocument = (appendToExistingDoc && File.Exists(pdfFilename)) ? PdfReader.Open(pdfFilename, PdfDocumentOpenMode.Modify) : new PdfDocument();
 			PdfRenderer renderer = new PdfRenderer();
 
 			int pageIndex = 0;
