@@ -125,7 +125,7 @@ namespace XPS2PDF
 				if (!ToPDFA)
 					return result;
 				else
-					SaveAsPDFA(tempPDF, pdfPath);
+					SaveAsPDFA(ref tempPDF, pdfPath);
 			}
 			catch (Exception ex)
 			{
@@ -142,9 +142,15 @@ namespace XPS2PDF
 			return result;
 		}
 
-		private void SaveAsPDFA(string tempPDF, string pdfPath)
+		private void SaveAsPDFA(ref string tempPDF, string pdfPath)
 		{
-			tempPDF = Path.Combine(Path.GetTempPath(), string.Format("{0}_tmp.pdf", Guid.NewGuid()));
+			string tempdir = Path.Combine(Path.GetTempPath(), "XPS2PDF");
+
+			if (!Directory.Exists(tempdir))
+				Directory.CreateDirectory(tempdir);
+
+			tempPDF = Path.Combine(tempdir, string.Format("{0}_tmp.pdf", Guid.NewGuid()));
+
 
 			File.Copy(pdfPath, tempPDF);
 
