@@ -6,6 +6,7 @@ using System.Text;
 using System.Xml;
 using System.IO;
 using PdfSharp.Xps.XpsModel;
+using System.IO.Packaging;
 
 namespace PdfSharp.Xps.Parsing
 {
@@ -34,14 +35,14 @@ namespace PdfSharp.Xps.Parsing
       }
     }
 
-    public static XpsElement Parse(XmlTextReader xmlReader)
+    public static XpsElement Parse(XmlTextReader xmlReader, ZipPackage package = null)
     {
       XpsParser parser = new XpsParser(xmlReader);
-      XpsElement element = parser.Parse();
+      XpsElement element = parser.Parse(package);
       return element;
     }
 
-    XpsElement Parse()
+    XpsElement Parse(ZipPackage package = null)
     {
       if (!this.reader.Read())
         return null;
@@ -58,7 +59,7 @@ namespace PdfSharp.Xps.Parsing
 
       if (this.reader.NodeType == XmlNodeType.Element)
       {
-        element = ParseElement();
+        element = ParseElement(package);
       }
 #if true
 #else
@@ -80,7 +81,7 @@ namespace PdfSharp.Xps.Parsing
       return element;
     }
 
-    XpsElement ParseElement()
+    XpsElement ParseElement(ZipPackage package = null)
     {
       if (this.reader.NodeType != XmlNodeType.Element)
         throw new InvalidOperationException(PSXSR.MustStandOnElement);
@@ -93,7 +94,7 @@ namespace PdfSharp.Xps.Parsing
           break;
 
         case "FixedPage":
-          element = ParseFixedPage();
+          element = ParseFixedPage(package);
           break;
 
         case "Glyphs":
@@ -169,9 +170,9 @@ namespace PdfSharp.Xps.Parsing
       key = key.Substring(0, key.IndexOf('}')).Trim();
 
       T res = FindStaticResource<T>(key, ResourceDictionaryStack.Current);
-      if (res == null)
-        throw new ArgumentException("StaticResource not found: " + value);
-      return res;
+			if (res == null)
+				throw new ArgumentException("StaticResource not found: " + value);
+			return res;
     }
 
     /// <summary>

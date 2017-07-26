@@ -31,5 +31,14 @@ namespace XPS2PDF.Properties {
                 return ((string)(this["GhostScriptDLLPath"]));
             }
         }
+        
+        [global::System.Configuration.ApplicationScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("%temp%\\renderZ\\XPS2PDF")]
+        public string ExceptionPath {
+            get {
+                return ((string)(this["ExceptionPath"]));
+            }
+        }
     }
 }

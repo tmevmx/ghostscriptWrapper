@@ -82,6 +82,10 @@ namespace XPS2PDF
 				if (args.Length > 4 && !bool.TryParse(args[4], out throwLimitError))
 					throwLimitError = false;
 
+				bool append = false;
+				if (args.Length > 5)
+					append = args[5].ToLower() == "concat";
+
 				if (string.IsNullOrWhiteSpace(Path.GetFileName(pdfPath)))
 					pdfPath = Path.Combine(pdfPath, Path.GetFileName(xpsPath));
 
@@ -100,7 +104,7 @@ namespace XPS2PDF
 				using (var xps = XpsDocument.Open(xpsPath))
 				{
 					log.InfoFormat("Convert '{0}' to '{1}'", xps, pathToSave);
-					XpsConverter.Convert(xps, pathToSave, 0);
+					XpsConverter.Convert(xps, pathToSave, 0, append);
 				}
 
 				List<string> files;
@@ -422,7 +426,9 @@ namespace XPS2PDF
 			var ex = ExceptionObject as Exception;
 			if (ex != null)
 			{
-				var tmp = Path.Combine(Path.GetTempPath(), "rz-Exceptions_XPS2PDFConverter");
+				var exPath = Environment.ExpandEnvironmentVariables(Properties.Settings.Default.ExceptionPath);
+
+				var tmp = Path.Combine((!string.IsNullOrWhiteSpace(exPath)) ? exPath : Path.GetTempPath(), "rz-Exceptions_XPS2PDFConverter");
 				if (!Directory.Exists(tmp)) Directory.CreateDirectory(tmp);
 				var outfile = Path.Combine(tmp, Guid.NewGuid() + ".xml");
 

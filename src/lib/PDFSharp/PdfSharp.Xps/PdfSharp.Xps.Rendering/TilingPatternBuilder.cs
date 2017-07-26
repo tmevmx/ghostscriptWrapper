@@ -26,24 +26,24 @@ namespace PdfSharp.Xps.Rendering
         /// <summary>
         /// Builds a tiling pattern from an image brush.
         /// </summary>
-        public static PdfTilingPattern BuildFromImageBrush(DocumentRenderingContext context, ImageBrush brush, XMatrix transform)
+        public static PdfTilingPattern BuildFromImageBrush(DocumentRenderingContext context, ImageBrush brush, XMatrix transform, Dictionary<string,PdfObject> resourceHashtable = null)
         {
             TilingPatternBuilder builder = new TilingPatternBuilder(context);
-            PdfTilingPattern pattern = builder.BuildPattern(brush, transform);
+            PdfTilingPattern pattern = builder.BuildPattern(brush, transform, resourceHashtable);
             return pattern;
         }
 
         /// <summary>
         /// Builds a PdfTilingPattern pattern from a visual brush.
         /// </summary>
-        public static PdfTilingPattern BuildFromVisualBrush(DocumentRenderingContext context, VisualBrush brush, XMatrix transform)
+        public static PdfTilingPattern BuildFromVisualBrush(DocumentRenderingContext context, VisualBrush brush, XMatrix transform, Dictionary<string, PdfObject> resourceHashtable = null)
         {
             TilingPatternBuilder builder = new TilingPatternBuilder(context);
-            PdfTilingPattern pdfPattern = builder.BuildPattern(brush, transform);
+            PdfTilingPattern pdfPattern = builder.BuildPattern(brush, transform, resourceHashtable);
             return pdfPattern;
         }
 
-        PdfTilingPattern BuildPattern(ImageBrush brush, XMatrix transform)
+        PdfTilingPattern BuildPattern(ImageBrush brush, XMatrix transform, Dictionary<string, PdfObject> resourceHashtable = null)
         {
             // Bounding box lays always at (0,0)
             XRect bbox = new XRect(0, 0, brush.Viewport.Width, brush.Viewport.Height);
@@ -115,7 +115,7 @@ namespace PdfSharp.Xps.Rendering
             PdfExtGState pdfExtGState = Context.PdfDocument.Internals.CreateIndirectObject<PdfExtGState>();
             pdfExtGState.SetDefault1();
 
-            PdfFormXObject pdfForm = BuildForm(brush);
+            PdfFormXObject pdfForm = BuildForm(brush, resourceHashtable);
             //XRect viewBoxForm = new XRect(0, 0, 640, 480);
 
             PdfContentWriter writer = new PdfContentWriter(Context, pattern);
@@ -142,7 +142,7 @@ namespace PdfSharp.Xps.Rendering
         /// <summary>
         /// Builds a PdfFormXObject from the specified brush. 
         /// </summary>
-        PdfFormXObject BuildForm(ImageBrush brush)
+        PdfFormXObject BuildForm(ImageBrush brush, Dictionary<string, PdfObject> resourceHashtable = null)
         {
             //<<
             //  /BBox [0 100 100 0]
@@ -177,9 +177,27 @@ namespace PdfSharp.Xps.Rendering
             //  Q
             //Q
             //endstream
-            PdfFormXObject pdfForm = Context.PdfDocument.Internals.CreateIndirectObject<PdfFormXObject>();
-            XPImage xpImage = ImageBuilder.FromImageBrush(Context, brush);
-            XImage ximage = xpImage.XImage;
+            PdfFormXObject pdfForm = null;
+			if (resourceHashtable != null && resourceHashtable.ContainsKey(brush.ImageSource))
+			{
+				pdfForm = resourceHashtable[brush.ImageSource] as PdfFormXObject;
+				return pdfForm;
+			}
+
+			pdfForm = Context.PdfDocument.Internals.CreateIndirectObject<PdfFormXObject>();
+
+			XImage ximage = null;
+
+			//if (resourceHashtable == null || !resourceHashtable.ContainsKey(brush.ImageSource))
+			//{
+				XPImage xpImage = ImageBuilder.FromImageBrush(Context, brush);
+				ximage = xpImage.XImage;
+			//}
+			//else
+			//{
+			//	ximage = (resourceHashtable[brush.ImageSource] as PdfImage).Image;
+			//}
+
             ximage.Interpolate = false;
             double width = ximage.PixelWidth;
             double height = ximage.PixelHeight;
@@ -193,7 +211,7 @@ namespace PdfSharp.Xps.Rendering
             pdfForm.Elements.SetRectangle(PdfFormXObject.Keys.BBox, new PdfRectangle(0, height, width, 0));
             pdfForm.Elements.SetMatrix(PdfFormXObject.Keys.Matrix, new XMatrix());
 
-            PdfContentWriter writer = new PdfContentWriter(Context, pdfForm);
+            PdfContentWriter writer = new PdfContentWriter(Context, pdfForm, resourceHashtable);
 
             Debug.Assert(ximage != null);
 
@@ -203,7 +221,13 @@ namespace PdfSharp.Xps.Rendering
             //formWriter.Size = brush.Viewport.Size;
             writer.BeginContentRaw();
 
-            string imageID = writer.Resources.AddImage(new PdfImage(Context.PdfDocument, ximage));
+			//PdfImage img = (resourceHashtable != null && resourceHashtable.ContainsKey(brush.ImageSource)) ? resourceHashtable[brush.ImageSource] as PdfImage : new PdfImage(Context.PdfDocument, ximage);
+
+			//if (resourceHashtable != null && !resourceHashtable.ContainsKey(brush.ImageSource))
+			//	resourceHashtable.Add(brush.ImageSource, img);
+			PdfImage img = new PdfImage(Context.PdfDocument, ximage);
+
+				string imageID = writer.Resources.AddImage(img);
             XMatrix matrix = new XMatrix();
             //double scaleX = brush.Viewport.Width / brush.Viewbox.Width * 4 / 3 * ximage.PointWidth;
             //double scaleY = brush.Viewport.Height / brush.Viewbox.Height * 4 / 3 * ximage.PointHeight;
@@ -230,10 +254,14 @@ namespace PdfSharp.Xps.Rendering
 
             writer.EndContent();
 
+			if (resourceHashtable != null)
+			{
+				resourceHashtable.Add(brush.ImageSource, pdfForm);
+			}
             return pdfForm;
         }
 
-        PdfTilingPattern BuildPattern(VisualBrush brush, XMatrix transform)
+        PdfTilingPattern BuildPattern(VisualBrush brush, XMatrix transform, Dictionary<string, PdfObject> resourceHashtable = null)
         {
             // Bounding box lays always at (0,0)
             XRect bbox = new XRect(0, 0, brush.Viewport.Width, brush.Viewport.Height);
@@ -299,7 +327,7 @@ namespace PdfSharp.Xps.Rendering
             PdfExtGState pdfExtGState = Context.PdfDocument.Internals.CreateIndirectObject<PdfExtGState>();
             pdfExtGState.SetDefault1();
 
-            PdfFormXObject pdfForm = BuildForm(brush);
+            PdfFormXObject pdfForm = BuildForm(brush, resourceHashtable);
 
             PdfContentWriter writer = new PdfContentWriter(Context, pattern);
             writer.BeginContentRaw();
@@ -325,42 +353,51 @@ namespace PdfSharp.Xps.Rendering
         /// <summary>
         /// Builds a PdfFormXObject from the specified brush. 
         /// </summary>
-        PdfFormXObject BuildForm(VisualBrush brush)
+        PdfFormXObject BuildForm(VisualBrush brush, Dictionary<string, PdfObject> resourceHashtable = null)
         {
-            //<<
-            //  /BBox [0 100 100 0]
-            //  /Length 65
-            //  /Matrix [1 0 0 1 0 0]
-            //  /Resources
-            //  <<
-            //    /ColorSpace
-            //    <<
-            //      /CS0 15 0 R
-            //    >>
-            //    /ExtGState
-            //    <<
-            //      /GS0 10 0 R
-            //    >>
-            //    /ProcSet [/PDF /ImageC /ImageI]
-            //    /XObject
-            //    <<
-            //      /Im0 16 0 R
-            //    >>
-            //  >>
-            //  /Subtype /Form
-            //>>
-            //stream
-            //  q
-            //  0 0 100 100 re
-            //  W n
-            //  q
-            //    /GS0 gs
-            //    100 0 0 -100 0 100 cm
-            //    /Im0 Do
-            //  Q
-            //Q
-            //endstream
-            PdfFormXObject pdfForm = Context.PdfDocument.Internals.CreateIndirectObject<PdfFormXObject>();
+			//<<
+			//  /BBox [0 100 100 0]
+			//  /Length 65
+			//  /Matrix [1 0 0 1 0 0]
+			//  /Resources
+			//  <<
+			//    /ColorSpace
+			//    <<
+			//      /CS0 15 0 R
+			//    >>
+			//    /ExtGState
+			//    <<
+			//      /GS0 10 0 R
+			//    >>
+			//    /ProcSet [/PDF /ImageC /ImageI]
+			//    /XObject
+			//    <<
+			//      /Im0 16 0 R
+			//    >>
+			//  >>
+			//  /Subtype /Form
+			//>>
+			//stream
+			//  q
+			//  0 0 100 100 re
+			//  W n
+			//  q
+			//    /GS0 gs
+			//    100 0 0 -100 0 100 cm
+			//    /Im0 Do
+			//  Q
+			//Q
+			//endstream
+
+			if (resourceHashtable != null && brush.Visual != null && brush.Visual.Content.Count > 0)
+			{
+				var canvas = brush.Visual.Content[0] as Canvas;
+
+				if(canvas != null && !string.IsNullOrEmpty(canvas.Key) && resourceHashtable.ContainsKey(canvas.Key))
+					return resourceHashtable[canvas.Key] as PdfFormXObject;
+			}
+
+			PdfFormXObject pdfForm = Context.PdfDocument.Internals.CreateIndirectObject<PdfFormXObject>();
 
             pdfForm.DpiX = 96;
             pdfForm.DpiY = 96;
@@ -372,7 +409,7 @@ namespace PdfSharp.Xps.Rendering
 
             pdfForm.Elements.SetMatrix(PdfFormXObject.Keys.Matrix, new XMatrix());
 
-            PdfContentWriter writer = new PdfContentWriter(Context, pdfForm);
+            PdfContentWriter writer = new PdfContentWriter(Context, pdfForm, resourceHashtable);
 
             pdfForm.Elements.SetMatrix(PdfFormXObject.Keys.Matrix, new XMatrix());
 
@@ -389,6 +426,14 @@ namespace PdfSharp.Xps.Rendering
 #endif
 
             writer.EndContent();
+			if (resourceHashtable != null && brush.Visual != null && brush.Visual.Content.Count > 0)
+			{
+				var canvas = brush.Visual.Content[0] as Canvas;
+
+				if (canvas != null && !string.IsNullOrEmpty(canvas.Key) && !resourceHashtable.ContainsKey(canvas.Key))
+					resourceHashtable.Add(canvas.Key, pdfForm);
+			}
+
 
             return pdfForm;
         }

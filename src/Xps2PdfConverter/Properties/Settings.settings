@@ -5,5 +5,8 @@
     <Setting Name="GhostScriptDLLPath" Type="System.String" Scope="Application">
       <Value Profile="(Default)">C:\Code\GhostScriptWrapper\src\lib\gs9.20\gsdll64.dll</Value>
     </Setting>
+    <Setting Name="ExceptionPath" Type="System.String" Scope="Application">
+      <Value Profile="(Default)">%temp%\renderZ\XPS2PDF</Value>
+    </Setting>
   </Settings>
 </SettingsFile>
