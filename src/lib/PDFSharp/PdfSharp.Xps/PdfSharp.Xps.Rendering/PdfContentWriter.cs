@@ -557,19 +557,25 @@ namespace PdfSharp.Xps.Rendering
             xgState.NonStrokeAlpha = opacity;
           }
           RealizeExtGState(xgState);
-
           // 1st draw fill
-          PdfTilingPattern pattern = TilingPatternBuilder.BuildFromVisualBrush(Context, vBrush, Transform, this.resourceHashtable);
-          string name = Resources.AddPattern(pattern);
+          var pdfForm = TilingPatternBuilder.BuildForm(Context, vBrush, this.resourceHashtable);
 
-          WriteLiteral("/Pattern cs " + name + " scn\n");
-          WriteGeometry(path.Data);
-          WritePathFillStroke(path);
+          string name = Resources.AddForm(pdfForm);
+			 XMatrix transformation = new XMatrix();
+			 double dx = vBrush.Viewport.Width / vBrush.Viewbox.Width * 96 / pdfForm.DpiX;
+			 double dy = vBrush.Viewport.Height / vBrush.Viewbox.Height * 96 / pdfForm.DpiY;
+			 transformation = new XMatrix(dx, 0, 0, dy, 0, 0);
+			 WriteMatrix(transformation);
+			 WriteGraphicsState(xgState);
+			 //WriteLiteral("/Pattern cs " + name + " scn\n");
+			 WriteLiteral(name+" Do\n");
+			 //WriteGeometry(path.Data);
+			 //WritePathFillStroke(path);
 
-          // 2nd draw stroke
-          if (path.Stroke != null)
-            WriteStrokeGeometry(path);
-        }
+			 // 2nd draw stroke
+			 if (path.Stroke != null)
+			 	WriteStrokeGeometry(path);
+		  }
         else
         {
           Debug.Assert(false, "Unknown brush type encountered.");

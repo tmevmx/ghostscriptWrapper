@@ -327,7 +327,7 @@ namespace PdfSharp.Xps.Rendering
             PdfExtGState pdfExtGState = Context.PdfDocument.Internals.CreateIndirectObject<PdfExtGState>();
             pdfExtGState.SetDefault1();
 
-            PdfFormXObject pdfForm = BuildForm(brush, resourceHashtable);
+            PdfFormXObject pdfForm = BuildForm(Context ,brush, resourceHashtable);
 
             PdfContentWriter writer = new PdfContentWriter(Context, pattern);
             writer.BeginContentRaw();
@@ -353,7 +353,7 @@ namespace PdfSharp.Xps.Rendering
         /// <summary>
         /// Builds a PdfFormXObject from the specified brush. 
         /// </summary>
-        PdfFormXObject BuildForm(VisualBrush brush, Dictionary<string, PdfObject> resourceHashtable = null)
+        public static PdfFormXObject BuildForm(DocumentRenderingContext Context ,VisualBrush brush, Dictionary<string, PdfObject> resourceHashtable = null)
         {
 			//<<
 			//  /BBox [0 100 100 0]
