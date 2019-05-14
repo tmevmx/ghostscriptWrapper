@@ -302,7 +302,7 @@ namespace PdfSharp.Xps.XpsModel
         byte[] imageData = this.payload.GetImageData(uriString);
 
         MemoryStream stream = new MemoryStream(imageData);
-        BitmapDecoder decoder = BitmapDecoder.Create(stream, BitmapCreateOptions.None, BitmapCacheOption.Default);
+        BitmapDecoder decoder = BitmapDecoder.Create(stream, BitmapCreateOptions.PreservePixelFormat, BitmapCacheOption.Default);
 
         BitmapFrame frame = decoder.Frames[0];
 

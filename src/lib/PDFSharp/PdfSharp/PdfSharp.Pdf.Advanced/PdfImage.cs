@@ -258,7 +258,7 @@ namespace PdfSharp.Pdf.Advanced
       }
 #endif
 #if WPF // && !GDI
-      // WPFTHHO: Bitte prüfen, siehe System.Windows.Media.PixelFormats
+      // WPFTHHO: Bitte prï¿½fen, siehe System.Windows.Media.PixelFormats
       //bool hasMask = false;
 #if !SILVERLIGHT
       string format = image.wpfImage.Format.ToString();
@@ -486,11 +486,38 @@ namespace PdfSharp.Pdf.Advanced
           Elements[Keys.SMask] = smask.Reference;
         }
 
+				var addDct = false;
+				if (!hasAlphaMask)
+				{
+					try
+					{
+						var bmp = BitmapSource.Create(width, height, 300, 300, PixelFormats.Rgb24, null, imageData, width * components);
+						using (var raw = new MemoryStream())
+						{
+							var enc = new JpegBitmapEncoder();
+							enc.Frames.Add(BitmapFrame.Create(bmp));
+							enc.Save(raw);
+
+							imageData = raw.ToArray();
+						}
+						addDct = true;
+					}
+					catch { }
+				}
+
         byte[] imageDataCompressed = fd.Encode(imageData);
 
         Stream = new PdfStream(imageDataCompressed, this);
         Elements[Keys.Length] = new PdfInteger(imageDataCompressed.Length);
-        Elements[Keys.Filter] = new PdfName("/FlateDecode");
+				if(addDct)
+				{
+					var filtersArray = new PdfArray(document);
+					filtersArray.Elements.Add(new PdfName("/FlateDecode"));
+					filtersArray.Elements.Add(new PdfName("/DCTDecode"));
+					Elements[Keys.Filter] = filtersArray;
+				}
+				else
+	        Elements[Keys.Filter] = new PdfName("/FlateDecode");
         Elements[Keys.Width] = new PdfInteger(width);
         Elements[Keys.Height] = new PdfInteger(height);
         Elements[Keys.BitsPerComponent] = new PdfInteger(8);

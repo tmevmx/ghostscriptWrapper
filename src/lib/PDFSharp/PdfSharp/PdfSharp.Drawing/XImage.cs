@@ -266,6 +266,7 @@ namespace PdfSharp.Drawing
 
         switch (pixelFormat)
         {
+					case "Bgr24":
           case "Bgr32":
           case "Bgra32":
           case "Pbgra32":
