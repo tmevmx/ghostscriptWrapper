@@ -10,6 +10,8 @@ using PdfSharp.Pdf.Internal;
 using PdfSharp.Drawing;
 using PdfSharp.Drawing.Pdf;
 using PdfSharp.Fonts.OpenType;
+using PdfSharp.Pdf.Annotations;
+using PdfSharp.Pdf.Actions;
 
 #pragma warning disable 414, 169, 649 // incomplete code state
 
@@ -582,6 +584,24 @@ namespace PdfSharp.Xps.Rendering
         }
       }
       WriteRestoreState("end Path", path.Name);
+
+			if (!string.IsNullOrEmpty(path.FixedPage_NavigateUri))
+			{
+				var xpsLinkRect = path.Data.GetBoundingBox();
+
+				var x1 = 0.75 * xpsLinkRect.Left;
+				var y1 = page.Height - 0.75 * (xpsLinkRect.Bottom);
+				var x2 = 0.75 * (xpsLinkRect.Right);
+				var y2 = page.Height - 0.75 * ( xpsLinkRect.Bottom - xpsLinkRect.Height);
+
+				var pdfLinkRect = new PdfRectangle(x1, y1, x2, y2);
+				
+				//create a link without a border
+				var action = PdfLinkAnnotation.CreateWebLink(pdfLinkRect, path.FixedPage_NavigateUri);
+				action.Elements[PdfAnnotation.Keys.BS] = new PdfLiteral("<</W 0>>");
+				
+				page.Annotations.Add(action);
+			}
     }
 
     /// <summary>
