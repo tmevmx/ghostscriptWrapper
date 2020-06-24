@@ -542,9 +542,10 @@ namespace PdfSharp.Xps.Rendering
 						var img = ImageBuilder.FromImageBrush(Context, iBrush);
 						var pdfImage = new PdfImage(Context.PdfDocument, img.XImage);
 						var imageName = Resources.AddImage(pdfImage);
-
+						
 						//scale-matrix
-						var mtx = new XMatrix(w, 0, 0, -h, 0, h);
+						var mtx = new XMatrix(w, 0, 0, -h, iBrush.Viewport.X, iBrush.Viewport.Y + h);
+					
 						WriteRenderTransform(mtx);
 						WriteLiteral(imageName + " Do\n");
 					}
