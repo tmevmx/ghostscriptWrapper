@@ -535,17 +535,33 @@ namespace PdfSharp.Xps.Rendering
           }
           RealizeExtGState(xgState);
 
-          // 1st draw fill
-          PdfTilingPattern pattern = TilingPatternBuilder.BuildFromImageBrush(Context, iBrush, Transform, this.resourceHashtable);
-          string name = Resources.AddPattern(pattern);
 
-          WriteLiteral("/Pattern cs " + name + " scn\n");
-          WriteGeometry(path.Data);
-          WritePathFillStroke(path);
+			if (path.Stroke == null &&
+				 path.Data.Figures.Count == 1 &&
+				 WpfUtils.IsRectangle(path.Data.Figures[0], out double x, out double y, out double w, out double h)) {
+						var img = ImageBuilder.FromImageBrush(Context, iBrush);
+						var pdfImage = new PdfImage(Context.PdfDocument, img.XImage);
+						var imageName = Resources.AddImage(pdfImage);
 
-          // 2nd draw stroke
-          if (path.Stroke != null)
-            WriteStrokeGeometry(path);
+						//scale-matrix
+						var mtx = new XMatrix(w, 0, 0, -h, 0, h);
+						WriteRenderTransform(mtx);
+						WriteLiteral(imageName + " Do\n");
+					}
+					else
+					{
+						// 1st draw fill
+						PdfTilingPattern pattern = TilingPatternBuilder.BuildFromImageBrush(Context, iBrush, Transform, this.resourceHashtable);
+						string name = Resources.AddPattern(pattern);
+
+						WriteLiteral("/Pattern cs " + name + " scn\n");
+						WriteGeometry(path.Data);
+						WritePathFillStroke(path);
+
+						// 2nd draw stroke
+						if (path.Stroke != null)
+							WriteStrokeGeometry(path);
+					}
         }
         else if ((vBrush = path.Fill as VisualBrush) != null)
         {
@@ -937,26 +953,19 @@ namespace PdfSharp.Xps.Rendering
         ArcSegment aseg;
         PolyQuadraticBezierSegment qseg;
 
-        // And now for the most superfluous and unnecessary optimization within the whole PDFsharp library
-        if (figure.IsClosed && figure.Segments.Count == 1 && (pseg = figure.Segments[0] as PolyLineSegment) != null && pseg.Points.Count == 3)
-        {
-          // Identify rectangles
-          Point pt0 = figure.StartPoint;
-          Point pt1 = pseg.Points[0];
-          Point pt2 = pseg.Points[1];
-          Point pt3 = pseg.Points[2];
-          // This
-          //   M16,0 L24,0 24,144 16,144 Z
-          // becomes
-          //   16 0 m  24 0 l  24 144 l  16 144 l  h
-          // but shorter is this
-          //   16 0 8 144 re
-          if (pt0.X == pt3.X && pt0.Y == pt1.Y && pt1.X == pt2.X && pt2.Y == pt3.Y)
-          {
-            WriteLiteral("{0:0.###} {1:0.###} {2:0.###} {3:0.###} re \n", pt0.X, pt0.Y, pt2.X - pt0.X, pt2.Y - pt1.Y);
-            continue;
-          }
-        }
+				// And now for the most superfluous and unnecessary optimization within the whole PDFsharp library
+				if (WpfUtils.IsRectangle(figure, out double x, out double y, out double w, out double h))
+				{
+					// This
+					//   M16,0 L24,0 24,144 16,144 Z
+					// becomes
+					//   16 0 m  24 0 l  24 144 l  16 144 l  h
+					// but shorter is this
+					//   16 0 8 144 re
+					WriteLiteral("{0:0.###} {1:0.###} {2:0.###} {3:0.###} re \n", x, y, w, h);
+					continue;
+				}
+
         WriteMoveStart(figure.StartPoint);
         foreach (PathSegment seg in figure.Segments)
         {
