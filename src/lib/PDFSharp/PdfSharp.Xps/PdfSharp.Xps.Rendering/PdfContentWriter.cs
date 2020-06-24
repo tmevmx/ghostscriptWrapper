@@ -547,6 +547,8 @@ namespace PdfSharp.Xps.Rendering
 						var mtx = new XMatrix(w, 0, 0, -h, iBrush.Viewport.X, iBrush.Viewport.Y + h);
 					
 						WriteRenderTransform(mtx);
+						var clipRect = new XRect(0, 0, w, h);
+						WriteClip(clipRect);
 						WriteLiteral(imageName + " Do\n");
 					}
 					else
