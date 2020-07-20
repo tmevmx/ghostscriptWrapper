@@ -17,6 +17,7 @@ using PdfSharp.Xps;
 using PdfSharp.Xps.XpsModel;
 using PdfSharp.Pdf.IO;
 using PdfSharp.Pdf;
+using GhostScriptWrapper;
 
 [assembly: XmlConfigurator(Watch = true)]
 
@@ -158,7 +159,7 @@ namespace XPS2PDF
 
 			File.Copy(pdfPath, tempPDF);
 
-			GhostScriptWrapper.CallAPI(GetArgs(tempPDF, pdfPath)); //TODO [RBU] Settings.Default.GhostScriptDLLPath
+			Wrapper.CallAPI(GetArgs(tempPDF, pdfPath)); //TODO [RBU] Settings.Default.GhostScriptDLLPath
 
 			var document = new it.Document();
 
