@@ -63,10 +63,5 @@
       <Name>PdfSharp-WPF</Name>
     </ProjectReference>
   </ItemGroup>
-  <ItemGroup>
-    <Content Include="gsdll64.dll">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
-  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

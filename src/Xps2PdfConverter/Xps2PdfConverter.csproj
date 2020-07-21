@@ -78,11 +78,6 @@
     </None>
   </ItemGroup>
   <ItemGroup>
-    <Content Include="gsdll64.dll">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
-  </ItemGroup>
-  <ItemGroup>
     <ProjectReference Include="..\GhostScriptWrapper\GhostScriptWrapper.csproj">
       <Project>{370816bf-3585-4365-9d92-acaa70df463e}</Project>
       <Name>GhostScriptWrapper</Name>
