@@ -539,8 +539,22 @@ namespace PdfSharp.Xps.Rendering
 			if (path.Stroke == null &&
 				 path.Data.Figures.Count == 1 &&
 				 WpfUtils.IsRectangle(path.Data.Figures[0], out double x, out double y, out double w, out double h)) {
-						var img = ImageBuilder.FromImageBrush(Context, iBrush);
-						var pdfImage = new PdfImage(Context.PdfDocument, img.XImage);
+					
+						PdfImage pdfImage = null;
+
+						if (resourceHashtable != null && resourceHashtable.ContainsKey(iBrush.ImageSource))
+						{
+							pdfImage = resourceHashtable[iBrush.ImageSource] as PdfImage;
+						}
+						else
+						{
+							var img = ImageBuilder.FromImageBrush(Context, iBrush);
+							pdfImage = new PdfImage(Context.PdfDocument, img.XImage);
+							if (resourceHashtable != null)
+							{
+								resourceHashtable.Add(iBrush.ImageSource, pdfImage);
+							}
+						}
 						var imageName = Resources.AddImage(pdfImage);
 						
 						//scale-matrix
