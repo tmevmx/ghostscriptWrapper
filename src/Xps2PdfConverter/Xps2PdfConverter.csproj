@@ -104,4 +104,7 @@
   <PropertyGroup>
     <AutoVersion>True</AutoVersion>
   </PropertyGroup>
+  <PropertyGroup>
+    <PreBuildEvent>$(SolutionDir)prebuild.cmd $(SolutionDir) $(ProjectDir) $(SolutionDir)..\</PreBuildEvent>
+  </PropertyGroup>
 </Project>
