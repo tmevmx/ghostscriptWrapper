@@ -417,10 +417,14 @@ namespace PdfSharp.Pdf
     Dictionary<PdfItem, object> overflow = new Dictionary<PdfItem, object>();
     void TransitiveClosureImplementation(Dictionary<PdfItem, object> objects, PdfObject pdfObject, ref int depth)
     {
-      if (depth-- == 0)
-        return;
       try
       {
+			//this used to be a simple countdown, in other words it counted the amount of times this method got called, it didn't check the actual depth.
+			//When a file contained enough elements on the 32767th call the element got skipped because of a depth == 0 comparison which led to a corupted file.
+			depth--;
+			if (depth == 0)
+				throw new Exception("Maximum depth reached");
+
         nestingLevel++;
         if (nestingLevel >= 1000)
         {
@@ -520,6 +524,7 @@ namespace PdfSharp.Pdf
       }
       finally
       {
+		  depth++;
         nestingLevel--;
       }
     }
