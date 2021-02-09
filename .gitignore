@@ -62,5 +62,5 @@ packages/
 
 #Test files
 *.testsettings
-*/AssemblyInfo.cs
+**/AssemblyInfo.cs
 src/.vs/
