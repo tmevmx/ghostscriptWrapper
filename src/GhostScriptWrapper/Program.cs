@@ -59,22 +59,13 @@ namespace GhostScriptWrapper
 				var metadata = new MetaData();
 
 				if (args.Length >= 2)
-				{
-					var metaDataPath = args[1];
-					if (!File.Exists(metaDataPath))
-						Environment.Exit(404);
+					metadata.Creator = args[1];
 
-					log.InfoFormat("Loading metadata from '{0}'", metaDataPath);
-					var serial = new XmlSerializer(typeof(MetaData));
-					using (var fs = File.OpenRead(metaDataPath))
-						metadata = serial.Deserialize(fs) as MetaData;
+				if (args.Length >= 3)
+					metadata.Author = args[2];
 
-					if (metadata == null)
-					{
-						log.Error("Couldn't load metadata");
-						Environment.Exit(500);
-					}
-				}
+				if (args.Length >= 4)
+					metadata.Language = args[3];
 
 				SaveAsPDFA(ref tempPDF, pdfPath, metadata);
 			}

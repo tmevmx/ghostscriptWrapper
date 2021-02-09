@@ -2,7 +2,6 @@
 
 namespace GhostScriptWrapper
 {
-	[Serializable]
 	public class MetaData
 	{
 		public string Author { get; set; } = string.Empty;
