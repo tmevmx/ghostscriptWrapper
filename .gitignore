@@ -63,12 +63,4 @@ packages/
 #Test files
 *.testsettings
 */AssemblyInfo.cs
-src/TMEVMX/TemplateTools/TemplateDesigner/Properties/AssemblyInfo.cs
-src/TMEVMX/TemplateTools/TemplateReleaser/Properties/AssemblyInfo.cs
-src/TMEVMX/renderZ/Plugins/Cores/VetusCore/Core/Properties/AssemblyInfo.cs
-src/TMEVMX/renderZ/Plugins/Cores/VetusCore/VetusCorePlugin/Properties/AssemblyInfo.cs
-src/TMEVMX/renderZ/Service/Properties/AssemblyInfo.cs
-
-src/TMEVMX.renderZ.Service150304.vsp
-src/TMEVMX.renderZ.Service.psess
 src/.vs/

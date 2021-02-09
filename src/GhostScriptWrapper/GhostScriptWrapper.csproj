@@ -7,8 +7,8 @@
     <ProjectGuid>{9955908C-AE7C-4AB8-8616-FF11B9F6AE8D}</ProjectGuid>
     <OutputType>Exe</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>XPS2PDF</RootNamespace>
-    <AssemblyName>XPS2PDF</AssemblyName>
+    <RootNamespace>GhostScriptWrapper</RootNamespace>
+    <AssemblyName>GhostScriptWrapper</AssemblyName>
     <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <NuGetPackageImportStamp>
@@ -53,8 +53,8 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="EncodingHelper.cs" />
     <Compile Include="GhostScriptWrapper.cs" />
+    <Compile Include="MetaData.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Properties\Settings.Designer.cs">
@@ -70,6 +70,12 @@
     <None Include="app.config">
       <SubType>Designer</SubType>
     </None>
+    <None Include="LICENSE">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="LICENSE.md">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Include="PDFA_def.ps">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
@@ -77,21 +83,14 @@
       <Generator>SettingsSingleFileGenerator</Generator>
       <LastGenOutput>Settings.Designer.cs</LastGenOutput>
     </None>
+    <None Include="README.md">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Content Include="gsdll64.dll">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\lib\PDFSharp\PdfSharp.Xps\PdfSharp.Xps.csproj">
-      <Project>{0bc3964b-a3bc-49d5-9b7c-463299b5a166}</Project>
-      <Name>PdfSharp.Xps</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\lib\PDFSharp\PdfSharp\PdfSharp-WPF.csproj">
-      <Project>{829d93b8-7950-4bc8-aea4-51854f84c172}</Project>
-      <Name>PdfSharp-WPF</Name>
-    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

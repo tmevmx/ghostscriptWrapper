@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Reflection;
@@ -11,125 +10,73 @@ using log4net.Config;
 using ip = iTextSharp.text.pdf;
 using it = iTextSharp.text;
 using System.Globalization;
-using System.Threading;
-using XPS2PDF.Properties;
-using PdfSharp.Xps;
-using PdfSharp.Xps.XpsModel;
-using PdfSharp.Pdf.IO;
-using PdfSharp.Pdf;
+using System.Xml.Serialization;
 
 [assembly: XmlConfigurator(Watch = true)]
-
-namespace XPS2PDF
+namespace GhostScriptWrapper
 {
 	class Program
 	{
 		static int Main(string[] args)
 		{
-			GlobalContext.Properties["LogName"] = string.Format("XPS2PDFConverter_{0}.log", DateTime.Now.ToString("yyyyMMdd_HHmmss"));
+			GlobalContext.Properties["LogName"] = string.Format("GhostScriptWrapper_{0}.log", DateTime.Now.ToString("yyyyMMdd_HHmmss"));
 
-			//while (!Debugger.IsAttached) Thread.Sleep(100);
-
-			var conv = new Converter();
+			var conv = new Wrapper();
 			return conv.Convert(args);
 		}
 	}
 
-	public class Converter
+	public class Wrapper
 	{
 		private static readonly ILog log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
 
-		public Converter()
+		public Wrapper()
 		{
-			log.Info("Constructor Converter");
 			AppDomain.CurrentDomain.UnhandledException += CurrentDomain_UnhandledException;
 		}
+
 		/// <summary>
 		/// </summary>
 		/// <param name="args">string xpsPath, string pdfPath, bool ToPdfA</param>
 		/// <returns></returns>
 		public int Convert(string[] args)
 		{
-			if (log.IsInfoEnabled)
-				log.InfoFormat("Start Convert ... with args: {0}", string.Join(",", args));
+			log.InfoFormat("Args: {0}", string.Join(",", args));
 
 			var result = 0;
-			var ToPDFA = false;
-			var throwLimitError = false;
 			string pdfPath = null;
 			string tempPDF = null;
-			long maxSizePerPart = 0;
 			try
 			{
-				if (args.Length < 2 && args.Length > 3)
+				if (args.Length < 1)
 					Environment.Exit(-1);
 
-				var xpsPath = args[0];
-				pdfPath = args[1];
+				pdfPath = args[0];
 
-				if (!File.Exists(xpsPath))
+				if (!File.Exists(pdfPath))
 					Environment.Exit(404);
 
-				if (!Directory.Exists(Path.GetDirectoryName(pdfPath)))
-					Environment.Exit(405);
+				var metadata = new MetaData();
 
-				if (args.Length > 2 && !bool.TryParse(args[2], out ToPDFA))
-					ToPDFA = false;
-
-				if (args.Length > 3)
-					long.TryParse(args[3], out maxSizePerPart);
-
-				if (args.Length > 4 && !bool.TryParse(args[4], out throwLimitError))
-					throwLimitError = false;
-
-				bool append = false;
-				if (args.Length > 5)
-					append = args[5].ToLower() == "concat";
-
-				if (string.IsNullOrWhiteSpace(Path.GetFileName(pdfPath)))
-					pdfPath = Path.Combine(pdfPath, Path.GetFileName(xpsPath));
-
-				if (!pdfPath.ToLower().EndsWith(".pdf"))
-					pdfPath = Path.ChangeExtension(pdfPath, "pdf");
-
-				if (!File.Exists(xpsPath))
-					throw new Exception(string.Format("XPS-File-Path not found: {0}", xpsPath));
-				if (maxSizePerPart > 0 && !pdfPath.Contains("%Part%"))
-					throw new Exception("If setting 'MaxFileSize' is greater than 0, in filename there have to be '%Part%'.");
-
-				var pathToSave = pdfPath;
-				if (pdfPath.Contains("%Part%") && maxSizePerPart <= 0)
-					pathToSave = pdfPath.Replace("%Part%", "0001");
-
-				using (var xps = XpsDocument.Open(xpsPath))
+				if (args.Length >= 2)
 				{
-					log.InfoFormat("Convert '{0}' to '{1}'", xps, pathToSave);
-					XpsConverter.Convert(xps, pathToSave, 0, append);
-				}
+					var metaDataPath = args[1];
+					if (!File.Exists(metaDataPath))
+						Environment.Exit(404);
 
-				List<string> files;
-				if (maxSizePerPart > 0 && new FileInfo(pathToSave).Length > maxSizePerPart)
-				{
-					files = SplitBySize(pathToSave, pdfPath, maxSizePerPart, throwLimitError, ref result);
-					File.Delete(pathToSave);
-				}
-				else
-				{
-					pdfPath = pdfPath.Replace("%Part%", "0001");
+					log.InfoFormat("Loading metadata from '{0}'", metaDataPath);
+					var serial = new XmlSerializer(typeof(MetaData));
+					using (var fs = File.OpenRead(metaDataPath))
+						metadata = serial.Deserialize(fs) as MetaData;
 
-					if (pathToSave != pdfPath)
+					if (metadata == null)
 					{
-						if (File.Exists(pdfPath))
-							File.Delete(pdfPath);
-						File.Move(pathToSave, pdfPath);
+						log.Error("Couldn't load metadata");
+						Environment.Exit(500);
 					}
-					files = new List<string> { pdfPath };
 				}
 
-				if (!ToPDFA)
-					return result;
-				else
-					SaveAsPDFA(ref tempPDF, pdfPath);
+				SaveAsPDFA(ref tempPDF, pdfPath, metadata);
 			}
 			catch (Exception ex)
 			{
@@ -146,19 +93,18 @@ namespace XPS2PDF
 			return result;
 		}
 
-		private void SaveAsPDFA(ref string tempPDF, string pdfPath)
+		private void SaveAsPDFA(ref string tempPDF, string pdfPath, MetaData md)
 		{
-			string tempdir = Path.Combine(Path.GetTempPath(), "XPS2PDF");
+			string tempdir = Path.Combine(Path.GetTempPath(), "GhostScriptWrapper");
 
 			if (!Directory.Exists(tempdir))
 				Directory.CreateDirectory(tempdir);
 
 			tempPDF = Path.Combine(tempdir, string.Format("{0}_tmp.pdf", Guid.NewGuid()));
 
-
 			File.Copy(pdfPath, tempPDF);
 
-			GhostScriptWrapper.CallAPI(GetArgs(tempPDF, pdfPath)); //TODO [RBU] Settings.Default.GhostScriptDLLPath
+			GhostScriptWrapper.CallAPI(GetArgs(tempPDF, pdfPath));
 
 			var document = new it.Document();
 
@@ -173,9 +119,9 @@ namespace XPS2PDF
 				// step 3: we open the document
 				document.Open();
 
-				document.AddAuthor("VMX");
-				document.AddCreator("renderZv2");
-				document.AddLanguage("de-AT");
+				document.AddAuthor(md.Author);
+				document.AddCreator(md.Creator);
+				document.AddLanguage(md.Language);
 				document.AddProducer();
 				document.AddTitle(Path.GetFileNameWithoutExtension(pdfPath));
 
@@ -220,17 +166,17 @@ namespace XPS2PDF
 				}
 			}
 
-			manipulatePdf(tempPDF, pdfPath);
+			ManipulatePdf(tempPDF, pdfPath, md);
 		}
 
-		public void manipulatePdf(string src, string dest)
+		void ManipulatePdf(string src, string dest, MetaData md)
 		{
 			using (var reader = new ip.PdfReader(src))
 			{
 				var catalog = reader.Catalog;
 				var structTreeRoot = catalog.GetAsDict(ip.PdfName.STRUCTTREEROOT);
 
-				manipulate(structTreeRoot);
+				Manipulate(structTreeRoot);
 				using (var stamper = new ip.PdfStamper(reader, new FileStream(dest, FileMode.Create)))
 				{
 
@@ -248,10 +194,10 @@ namespace XPS2PDF
 							time = DateTime.ParseExact(temp, "yyyyMMddHHmmsszzz", CultureInfo.InvariantCulture);
 						}
 
-						dic.Put(ip.PdfName.PRODUCER, new ip.PdfString("renderZv2"));
+						dic.Put(ip.PdfName.PRODUCER, new ip.PdfString(md.Creator));
 						dic.Put(ip.PdfName.TITLE, new ip.PdfString(Path.GetFileNameWithoutExtension(dest)));
-						dic.Put(ip.PdfName.CREATOR, new ip.PdfString("renderZv2"));
-						dic.Put(ip.PdfName.AUTHOR, new ip.PdfString("VMX"));
+						dic.Put(ip.PdfName.CREATOR, new ip.PdfString(md.Creator));
+						dic.Put(ip.PdfName.AUTHOR, new ip.PdfString(md.Author));
 						dic.Put(ip.PdfName.CREATIONDATE, new ip.PdfDate(time));
 
 
@@ -298,27 +244,25 @@ namespace XPS2PDF
 			}
 		}
 
-		public void manipulate(ip.PdfDictionary element)
+		void Manipulate(ip.PdfDictionary element)
 		{
 			if (element == null)
 				return;
 
 			if (ip.PdfName.FIGURE.Equals(element.Get(ip.PdfName.S)))
-
 				element.Put(ip.PdfName.ALT, new ip.PdfString("Image"));
-
 
 			var kids = element.GetAsArray(ip.PdfName.K);
 			if (kids == null) return;
 			for (var i = 0; i < kids.Size; i++)
-				manipulate(kids.GetAsDict(i));
+				Manipulate(kids.GetAsDict(i));
 		}
 
 		static string[] GetArgs(string inputPath, string outputPath)
 		{
 			return new[]
 			{
-				"", //Leer weil das 0. Argument ignoriert wird
+				"", //empty, first argument will be ignored
 				"-dPDFA",
 				"-dBATCH",
 				"-dNOPAUSE",
@@ -352,83 +296,13 @@ namespace XPS2PDF
 			}
 		}
 
-		public static List<string> SplitBySize(string fileToSplit, string filename, long limit, bool throwLimitError, ref int result)
-		{
-			var input = PdfReader.Open(fileToSplit, PdfDocumentOpenMode.Import);
-			var output = CreateDocument(input);
-
-			var name = Path.GetFileNameWithoutExtension(fileToSplit);
-			var temp = filename.Replace("%Part%", "splitTmp");
-			var j = 1;
-			var files = new List<string>();
-			string path = null;
-			for (var i = 0; i < input.PageCount; i++)
-			{
-				var page = input.Pages[i];
-				output.AddPage(page);
-				output.Save(temp);
-				var info = new FileInfo(temp);
-				if (info.Length <= limit || (!throwLimitError && output.PageCount == 1))
-				{
-					if (!throwLimitError && output.PageCount == 1)
-					{
-						//Warning
-						result = 333;
-					}
-
-					path = filename.Replace("%Part%", string.Format("{0:0000}", j));
-					if (File.Exists(path))
-						File.Delete(path);
-					File.Move(temp, path);
-				}
-				else
-				{
-					if (output.PageCount > 1)
-					{
-						if (!string.IsNullOrWhiteSpace(path))
-							files.Add(path);
-
-						if (File.Exists(temp))
-							File.Delete(temp);
-
-						output = CreateDocument(input);
-
-						++j;
-						--i;
-					}
-					else
-					{
-						result = 333;
-						throw new Exception(
-							 string.Format("Page #{0} is greater than the document size limit of {1} MB (size = {2})",
-							 i + 1,
-							 limit / 1E6,
-							 info.Length));
-					}
-				}
-			}
-
-			if (!string.IsNullOrWhiteSpace(path) && !files.Contains(path))
-				files.Add(path);
-
-			return files;
-		}
-
-		private static PdfDocument CreateDocument(PdfDocument input)
-		{
-			//???
-			var outputDocument = new PdfDocument();
-			return outputDocument;
-		}
-
 		static void WriteExceptionFile(object ExceptionObject)
 		{
-			var ex = ExceptionObject as Exception;
-			if (ex != null)
+			if (ExceptionObject is Exception ex)
 			{
 				var exPath = Environment.ExpandEnvironmentVariables(Properties.Settings.Default.ExceptionPath);
 
-				var tmp = Path.Combine((!string.IsNullOrWhiteSpace(exPath)) ? exPath : Path.GetTempPath(), "rz-Exceptions_XPS2PDFConverter");
+				var tmp = Path.Combine((!string.IsNullOrWhiteSpace(exPath)) ? exPath : Path.GetTempPath(), "Exceptions_GhostScriptWrapper");
 				if (!Directory.Exists(tmp)) Directory.CreateDirectory(tmp);
 				var outfile = Path.Combine(tmp, Guid.NewGuid() + ".xml");
 
@@ -459,41 +333,35 @@ namespace XPS2PDF
 			var exNode = n.OwnerDocument.CreateElement("Exception");
 			n.AppendChild(exNode);
 			var type = n.OwnerDocument.CreateAttribute("Type");
-			type.Value = fs(ex.GetType().FullName);
+			type.Value = Trim(ex.GetType().FullName);
 			exNode.Attributes.Append(type);
-			//exNode.AppendAttribute("Type", fs(ex.GetType().FullName));
 			var source = n.OwnerDocument.CreateAttribute("Source");
-			source.Value = fs(ex.Source);
+			source.Value = Trim(ex.Source);
 			exNode.Attributes.Append(source);
-			//exNode.AppendAttribute("Source", fs(ex.Source));
 
 			if (ex.TargetSite != null)
 			{
 				var target = n.OwnerDocument.CreateAttribute("TargetSiteName");
-				target.Value = fs(ex.TargetSite.Name);
+				target.Value = Trim(ex.TargetSite.Name);
 				exNode.Attributes.Append(target);
-				//exNode.AppendAttribute("TargetSiteName", fs(ex.TargetSite.Name));
 			}
 
 			var msg = n.OwnerDocument.CreateAttribute("Message");
-			msg.Value = fs(ex.Message);
+			msg.Value = Trim(ex.Message);
 			exNode.Attributes.Append(msg);
-			//exNode.AppendElement("Message").InnerText = fs(ex.Message);
 
 			var stack = n.OwnerDocument.CreateAttribute("StackTrace");
-			stack.Value = fs(ex.StackTrace);
+			stack.Value = Trim(ex.StackTrace);
 			exNode.Attributes.Append(stack);
-			//exNode.AppendElement("StackTrace").InnerText = fs(ex.StackTrace);
 
 			if (ex.InnerException != null)
 			{
 				var innerEx = n.OwnerDocument.CreateElement("InnerException");
 				exNode.AppendChild(innerEx);
 				AppendException(innerEx, ex.InnerException);
-				//exNode.AppendElement("InnerException").AppendException(ex.InnerException);
 			}
-			var arg = ex as AggregateException;
-			if (arg != null && arg.InnerExceptions != null)
+
+			if (ex is AggregateException arg && arg.InnerExceptions != null)
 			{
 				var inners = n.OwnerDocument.CreateElement("InnerException");
 				exNode.AppendChild(inners);
@@ -504,7 +372,7 @@ namespace XPS2PDF
 			return exNode;
 		}
 
-		private static string fs(string element)
+		private static string Trim(string element)
 		{
 			if (string.IsNullOrWhiteSpace(element)) return "";
 			return element;

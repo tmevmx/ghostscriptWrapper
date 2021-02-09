@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Runtime.InteropServices;
 
-namespace XPS2PDF
+namespace GhostScriptWrapper
 {
 	class GhostScriptWrapper
 	{
@@ -53,11 +53,10 @@ namespace XPS2PDF
 			ExitAPI(gsInstancePtr);
 			DeleteAPIInstance(gsInstancePtr);
 		}
-
-
+		
 		/// <summary>
 		/// GS can only support a single instance, so we need to bottleneck any multi-threaded systems.
 		/// </summary>
-		private static object resourceLock = new object();
+		private static readonly object resourceLock = new object();
 	}
 }
