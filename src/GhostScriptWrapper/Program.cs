@@ -67,6 +67,9 @@ namespace GhostScriptWrapper
 				if (args.Length >= 4)
 					metadata.Language = args[3];
 
+				if (args.Length >= 5)
+					metadata.CustomMetadata = File.ReadAllBytes(args[4]);
+
 				SaveAsPDFA(ref tempPDF, pdfPath, metadata);
 			}
 			catch (Exception ex)
@@ -219,6 +222,13 @@ namespace GhostScriptWrapper
 								var attrConf = xml.CreateAttribute("pdfaid:conformance", "http://www.aiim.org/pdfa/ns/id/");
 								attrConf.Value = "A";
 								node.Attributes.Append(attrConf);
+
+								if (md.CustomMetadata != null && md.CustomMetadata.Length > 0)
+								{
+									var dataNode = node.OwnerDocument.CreateElement("CustomMetaData");
+									node.AppendChild(dataNode);
+									dataNode.InnerText = System.Convert.ToBase64String(md.CustomMetadata);
+								}
 							}
 
 							ms.Position = 0;
