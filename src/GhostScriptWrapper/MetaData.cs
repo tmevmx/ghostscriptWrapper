@@ -7,5 +7,6 @@ namespace GhostScriptWrapper
 		public string Author { get; set; } = string.Empty;
 		public string Creator { get; set; } = string.Empty;
 		public string Language { get; set; } = string.Empty;
+		public byte[] CustomMetadata { get; set; } = null;
 	}
 }
