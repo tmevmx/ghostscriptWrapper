@@ -6,6 +6,19 @@ namespace GhostScriptWrapper
 	public class Wrapper
 	{
 		#region Hooks into Ghostscript DLL
+#if x86
+		[DllImport("gsdll32.dll", EntryPoint = "gsapi_new_instance")]
+		private static extern int CreateAPIInstance(out IntPtr pinstance, IntPtr caller_handle);
+
+		[DllImport("gsdll32.dll", EntryPoint = "gsapi_init_with_args")]
+		private static extern int InitAPI(IntPtr instance, int argc, string[] argv);
+
+		[DllImport("gsdll32.dll", EntryPoint = "gsapi_exit")]
+		private static extern int ExitAPI(IntPtr instance);
+
+		[DllImport("gsdll32.dll", EntryPoint = "gsapi_delete_instance")]
+		private static extern void DeleteAPIInstance(IntPtr instance);
+#else
 		[DllImport("gsdll64.dll", EntryPoint = "gsapi_new_instance")]
 		private static extern int CreateAPIInstance(out IntPtr pinstance, IntPtr caller_handle);
 
@@ -17,6 +30,7 @@ namespace GhostScriptWrapper
 
 		[DllImport("gsdll64.dll", EntryPoint = "gsapi_delete_instance")]
 		private static extern void DeleteAPIInstance(IntPtr instance);
+#endif
 		#endregion
 
 		/// <summary>
