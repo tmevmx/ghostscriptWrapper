@@ -11,6 +11,7 @@ using ip = iTextSharp.text.pdf;
 using it = iTextSharp.text;
 using System.Globalization;
 using System.Xml.Serialization;
+using System.Collections.Generic;
 
 [assembly: XmlConfigurator(Watch = true)]
 namespace GhostScriptWrapper
@@ -51,26 +52,46 @@ namespace GhostScriptWrapper
 				if (args.Length < 1)
 					Environment.Exit(-1);
 
-				pdfPath = args[0];
+				if (args[0] == "merge")
+				{
+					if (args.Length < 3)
+						Environment.Exit(-1);
 
-				if (!File.Exists(pdfPath))
-					Environment.Exit(404);
+					pdfPath = args[1];
+					var inFiles = new List<string>();
+					for (int i = 2; i < args.Length; i++)
+						inFiles.Add(args[i]);
 
-				var metadata = new MetaData();
+					if (inFiles.Count == 0)
+						Environment.Exit(-1);
+					if (inFiles.Count == 1)
+						return result;
 
-				if (args.Length >= 2)
-					metadata.Creator = args[1];
+					GhostScriptWrapper.CallAPI(GetArgs(pdfPath, inFiles));
+				}
+				else
+				{
+					pdfPath = args[0];
 
-				if (args.Length >= 3)
-					metadata.Author = args[2];
+					if (!File.Exists(pdfPath))
+						Environment.Exit(404);
 
-				if (args.Length >= 4)
-					metadata.Language = args[3];
+					var metadata = new MetaData();
 
-				if (args.Length >= 5)
-					metadata.CustomMetadata = File.ReadAllBytes(args[4]);
+					if (args.Length >= 2)
+						metadata.Creator = args[1];
 
-				SaveAsPDFA(ref tempPDF, pdfPath, metadata);
+					if (args.Length >= 3)
+						metadata.Author = args[2];
+
+					if (args.Length >= 4)
+						metadata.Language = args[3];
+
+					if (args.Length >= 5)
+						metadata.CustomMetadata = File.ReadAllBytes(args[4]);
+
+					SaveAsPDFA(ref tempPDF, pdfPath, metadata);
+				}
 			}
 			catch (Exception ex)
 			{
@@ -257,6 +278,21 @@ namespace GhostScriptWrapper
 			if (kids == null) return;
 			for (var i = 0; i < kids.Size; i++)
 				Manipulate(kids.GetAsDict(i));
+		}
+
+		static string[] GetArgs(string outputPath, IEnumerable<string> files)
+		{
+			var args = new List<string>
+			{
+				"", //empty, first argument will be ignored
+				"-dBATCH",
+				"-dNOPAUSE",
+				"-sDEVICE=pdfwrite",
+				string.Format("-sOutputFile={0}", outputPath),
+			};
+
+			args.AddRange(files);
+			return args.ToArray();
 		}
 
 		static string[] GetArgs(string inputPath, string outputPath)
