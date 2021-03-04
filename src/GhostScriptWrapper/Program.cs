@@ -1,16 +1,15 @@
-﻿using System;
+﻿using iTextSharp.text.xml.xmp;
+using log4net;
+using log4net.Config;
+using System;
 using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using System.Reflection;
 using System.Text;
 using System.Xml;
-using iTextSharp.text.xml.xmp;
-using log4net;
-using log4net.Config;
 using ip = iTextSharp.text.pdf;
 using it = iTextSharp.text;
-using System.Globalization;
-using System.Xml.Serialization;
 using System.Collections.Generic;
 
 [assembly: XmlConfigurator(Watch = true)]
@@ -88,7 +87,11 @@ namespace GhostScriptWrapper
 						metadata.Language = args[3];
 
 					if (args.Length >= 5)
+				{
+					var path = args[4];
+					if (!string.IsNullOrWhiteSpace(path))
 						metadata.CustomMetadata = File.ReadAllBytes(args[4]);
+				}
 
 					SaveAsPDFA(ref tempPDF, pdfPath, metadata);
 				}
