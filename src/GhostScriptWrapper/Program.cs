@@ -71,6 +71,7 @@ namespace GhostScriptWrapper
 				else
 				{
 					pdfPath = args[0];
+					var outPath = args[1];
 
 					if (!File.Exists(pdfPath))
 						Environment.Exit(404);
@@ -93,7 +94,7 @@ namespace GhostScriptWrapper
 						metadata.CustomMetadata = File.ReadAllBytes(args[4]);
 				}
 
-					SaveAsPDFA(ref tempPDF, pdfPath, metadata);
+					SaveAsPDFA(ref tempPDF, pdfPath, outPath, metadata);
 				}
 			}
 			catch (Exception ex)
@@ -111,7 +112,7 @@ namespace GhostScriptWrapper
 			return result;
 		}
 
-		private void SaveAsPDFA(ref string tempPDF, string pdfPath, MetaData md)
+		private void SaveAsPDFA(ref string tempPDF, string inputPath, string pdfPath, MetaData md)
 		{
 			string tempdir = Path.Combine(Path.GetTempPath(), "GhostScriptWrapper");
 
@@ -120,7 +121,7 @@ namespace GhostScriptWrapper
 
 			tempPDF = Path.Combine(tempdir, string.Format("{0}_tmp.pdf", Guid.NewGuid()));
 
-			File.Copy(pdfPath, tempPDF);
+			File.Copy(inputPath, tempPDF);
 
 			GhostScriptWrapper.CallAPI(GetArgs(tempPDF, pdfPath));
 
@@ -137,11 +138,11 @@ namespace GhostScriptWrapper
 				// step 3: we open the document
 				document.Open();
 
-				document.AddAuthor(md.Author);
-				document.AddCreator(md.Creator);
-				document.AddLanguage(md.Language);
-				document.AddProducer();
-				document.AddTitle(Path.GetFileNameWithoutExtension(pdfPath));
+				//document.AddAuthor(md.Author);
+				//document.AddCreator(md.Creator);
+				//document.AddLanguage(md.Language);
+				//document.AddProducer();
+				//document.AddTitle(Path.GetFileNameWithoutExtension(pdfPath));
 
 				// we create a reader for a certain document
 				var reader = new ip.PdfReader(pdfPath);
@@ -164,6 +165,10 @@ namespace GhostScriptWrapper
 				// step 5: we close the document and writer
 
 				document.AddCreationDate();
+
+				pdfaWriter.Info.Clear();
+				
+				pdfaWriter.SetPdfVersion(new ip.PdfName("2.0"));
 				pdfaWriter.Flush();
 
 				try
@@ -184,11 +189,16 @@ namespace GhostScriptWrapper
 				}
 			}
 
+			if (File.Exists(pdfPath))
+				File.Delete(pdfPath);
+			File.Move(tempPDF, pdfPath);
+
 			ManipulatePdf(tempPDF, pdfPath, md);
 		}
 
 		void ManipulatePdf(string src, string dest, MetaData md)
 		{
+			return;
 			using (var reader = new ip.PdfReader(src))
 			{
 				var catalog = reader.Catalog;
@@ -240,7 +250,7 @@ namespace GhostScriptWrapper
 								node.Attributes.Append(attrId);
 
 								var attrPart = xml.CreateAttribute("pdfaid:part", "http://www.aiim.org/pdfa/ns/id/");
-								attrPart.Value = "1";
+								attrPart.Value = "4";
 								node.Attributes.Append(attrPart);
 
 								var attrConf = xml.CreateAttribute("pdfaid:conformance", "http://www.aiim.org/pdfa/ns/id/");
@@ -261,7 +271,7 @@ namespace GhostScriptWrapper
 						}
 
 						stamper.XmpMetadata = ms.ToArray();
-
+						stamper.Writer.SetPdfVersion(new ip.PdfName("2.0"));
 						stamper.Close();
 						reader.Close();
 					}
@@ -281,6 +291,9 @@ namespace GhostScriptWrapper
 			if (kids == null) return;
 			for (var i = 0; i < kids.Size; i++)
 				Manipulate(kids.GetAsDict(i));
+
+			if (element.Contains(new ip.PdfName("Info")))
+				element.Remove(new ip.PdfName("Info"));
 		}
 
 		static string[] GetArgs(string outputPath, IEnumerable<string> files)
