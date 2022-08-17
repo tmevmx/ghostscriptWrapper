@@ -1,6 +1,7 @@
 ﻿using GhostScriptWrapper;
 using System;
 using System.IO;
+using System.Linq;
 using System.Runtime.InteropServices;
 
 namespace PDF2TIF
@@ -36,18 +37,20 @@ namespace PDF2TIF
 					if (i + 1 < args.Length)
 					{
 						if (arg.ToLower().Contains("input"))
-							pdfFilePath = args[i + 1].Trim().Replace("'", "");
+							pdfFilePath = args[i + 1].Trim();
 						else if (arg.ToLower().Contains("output"))
-							tifFilePath = args[i + 1].Trim().Replace("'", "");
+							tifFilePath = args[i + 1].Trim();
 					}
 				}
 
 				if (string.IsNullOrEmpty(pdfFilePath) || string.IsNullOrEmpty(tifFilePath))
 					throw new Exception(errorMsg);
 
-				var arguments = $" -sDEVICE=tiff24nc -sCompression=lzw -r300x300 -dNOPAUSE -sOutputFile={tifFilePath} {pdfFilePath}";
-				var argArray = arguments.Split(' ');
-				Wrapper.CallAPI(argArray);
+				var arguments = $" -sDEVICE=tiff24nc -sCompression=lzw -r300x300 -dNOPAUSE";
+				var argArray = arguments.Split(' ').ToList();
+				argArray.Add($"-sOutputFile={tifFilePath}");
+				argArray.Add(pdfFilePath);
+				Wrapper.CallAPI(argArray.ToArray());
 			}
 			catch (Exception ex)
 			{
